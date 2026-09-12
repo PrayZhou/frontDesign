@@ -878,7 +878,7 @@ Run: `grep -c "inspiration-search.md" SKILL.md references/research-ingestion.md 
 Expected: five lines, each with a count of at least `1`.
 
 Run: `grep -c "inspiration-search.mjs" SKILL.md references/inspiration-search.md`
-Expected: `SKILL.md` count is at least `3`; `references/inspiration-search.md` count is at least `1`.
+Expected: `SKILL.md` count is at least `2` (the `1a` and `3a` commands); `references/inspiration-search.md` count is at least `3` (the plan, normalize, and audit invocations).
 
 - [ ] **Step 5: Checkpoint**
 
