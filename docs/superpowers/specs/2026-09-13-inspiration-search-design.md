@@ -178,8 +178,10 @@ manually.
 1. The new script produces deterministic JSON for fixed inputs.
 2. `--normalize` output, embedded in a fixture plan, passes
    `validate-component-plan.mjs --strict`.
-3. `component-plan.example.json` and `component-plan.emotional.example.json` still pass
-   (no regression).
+3. Regression on the existing validator: the lib test asserts `validateComponentPlan`
+   accepts a plan carrying normalized evidence. The `examples/` plans that earlier revisions
+   of this spec named were removed from the workspace as a redundant asset, so they are no
+   longer part of the regression set.
 4. Manual end-to-end: given a real brief, the agent actually runs `2a` / `3a` and produces
    evidence.
 

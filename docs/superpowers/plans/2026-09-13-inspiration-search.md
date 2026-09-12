@@ -22,6 +22,9 @@
 - This directory is **not a git repository** (`git rev-parse` fails). Therefore commit steps are replaced by verification checkpoints. Do not run `git init` unless the user asks.
 - Every new file must be linked from `SKILL.md` or from a doc that `SKILL.md` links. Unreferenced assets are treated as redundant.
 - Reuse existing helpers: `scripts/lib/cli.mjs` (`parseArgs`, `printJson`) and `scripts/lib/project-inspector.mjs` (`readJsonFile`).
+- The `examples/` directory was removed from this workspace (redundant asset) before
+  implementation began. Regression evidence comes from the test suite, not from example
+  plans. Do not recreate `examples/`.
 - Do not change existing behavior of `query-components.mjs`, `inspect-project.mjs`, or `validate-component-plan.mjs`.
 
 ---
@@ -410,8 +413,8 @@ Expected: PASS — 8 tests.
 
 - [ ] **Step 5: Checkpoint**
 
-Run: `node scripts/lib/../validate-component-plan.mjs --file examples/component-plan.example.json --strict`
-Expected: `valid: 4 regions, 0 errors, 0 warnings` (proves no regression from editing the lib file).
+Run: `node --test scripts/lib/inspiration-planner.test.mjs`
+Expected: PASS — 8 tests, including `normalized records satisfy the plan validator`, which proves a normalized-evidence plan still passes `validateComponentPlan`.
 
 ---
 
@@ -895,8 +898,8 @@ Expected: `SKILL.md` count is at least `3`; `references/inspiration-search.md` c
 
 - [ ] **Step 5: Checkpoint**
 
-Run: `node scripts/validate-component-plan.mjs --file examples/component-plan.emotional.example.json --strict`
-Expected: `valid: 7 regions, 0 errors, 0 warnings`. Documentation edits must not affect validation.
+Run: `node --test scripts/lib/inspiration-planner.test.mjs scripts/inspiration-search.test.mjs`
+Expected: all tests pass. Documentation edits must not affect behavior.
 
 ---
 
@@ -914,13 +917,18 @@ Expected: `valid: 7 regions, 0 errors, 0 warnings`. Documentation edits must not
 Run: `node --test scripts/lib/inspiration-planner.test.mjs scripts/inspiration-search.test.mjs`
 Expected: `# pass 16`, `# fail 0` (12 lib tests + 4 CLI tests).
 
-- [ ] **Step 2: Verify no regression on the existing examples**
+- [ ] **Step 2: Verify no regression in the existing validator**
 
-Run: `node scripts/validate-component-plan.mjs --file examples/component-plan.example.json --strict`
-Expected: `valid: 4 regions, 0 errors, 0 warnings`.
+`examples/` was removed from this workspace as a redundant asset before implementation, so
+regression evidence comes from the test suite.
 
-Run: `node scripts/validate-component-plan.mjs --file examples/component-plan.emotional.example.json --strict`
-Expected: `valid: 7 regions, 0 errors, 0 warnings`.
+Run: `node --test scripts/lib/inspiration-planner.test.mjs`
+Expected: PASS, including `normalized records satisfy the plan validator`, which exercises
+`validateComponentPlan` on a real plan.
+
+If an installed copy of the skill is present, spot-check it read-only (do not copy files back):
+`node scripts/validate-component-plan.mjs --file /Users/rainyzhou/Desktop/artdesign/.agents/skills/component-driven-frontend/examples/component-plan.example.json --strict`
+Expected: `valid: 4 regions, 0 errors, 0 warnings`. Skip this line when the path is absent.
 
 - [ ] **Step 3: Verify the three CLI modes end to end**
 
@@ -930,7 +938,7 @@ Expected: `"tiers": ["T2","T3"]`, non-empty `queries` and `targets`, and `constr
 Run: `node scripts/inspiration-search.mjs --channel components --brief 'data table with filters' --json`
 Expected: `"tiers": ["T1"]` and every query has `"purpose": "component-candidate"`.
 
-Run: `node scripts/inspiration-search.mjs --audit-plan examples/component-plan.example.json --json`
+Run: `node -e "require('node:fs').writeFileSync('/tmp/cdff-clean-plan.json', JSON.stringify({ regions: [{ selection: { source: 'foundation', component: 'card' } }] }))" && node scripts/inspiration-search.mjs --audit-plan /tmp/cdff-clean-plan.json --json`
 Expected: `"valid": true` and exit code 0. Confirm with `echo $?`.
 
 - [ ] **Step 4: Verify the fail-fast paths**
