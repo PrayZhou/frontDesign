@@ -176,3 +176,32 @@ export function normalizeCaptured(captured) {
   }
   return references.map((reference, index) => normalizeReference(reference, index));
 }
+
+const RESTRICTED_SITES = TIER_SITES.filter((entry) => entry.tier !== 'T1');
+
+export function auditPlan(plan) {
+  const violations = [];
+  const regions = Array.isArray(plan?.regions) ? plan.regions : [];
+
+  regions.forEach((item, index) => {
+    const selection = item && typeof item === 'object' ? item.selection : undefined;
+    const values = [selection?.source, selection?.component]
+      .filter((value) => typeof value === 'string')
+      .map((value) => value.trim().toLowerCase());
+
+    for (const entry of RESTRICTED_SITES) {
+      const site = entry.site.toLowerCase();
+      const alias = entry.tier.toLowerCase();
+      if (values.some((value) => value === alias || value.includes(site))) {
+        violations.push({
+          code: 'inspiration-source-as-candidate',
+          path: `/regions/${index}/selection`,
+          message: `Selection references ${entry.site} (${entry.tier}); visual-inspiration sources must never become component candidates.`,
+        });
+        break;
+      }
+    }
+  });
+
+  return { valid: violations.length === 0, violations };
+}

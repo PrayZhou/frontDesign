@@ -107,3 +107,34 @@ test('missing required reference fields are rejected', () => {
   assert.throws(() => normalizeCaptured({ references: [] }), /non-empty array/);
   assert.throws(() => normalizeCaptured({ references: [{ url: 'u', publisher: 'p', claim: 'c', tier: 'T9' }] }), /must be one of T1, T2, T3/);
 });
+
+import { auditPlan } from './inspiration-planner.mjs';
+
+const region = (source, component) => ({
+  id: 'r', need: 'n', capabilities: ['data'],
+  selection: { source, component },
+  reason: 'x', states: ['success'], responsive: 'x', accessibility: {},
+});
+
+test('a clean plan has no violations', () => {
+  const result = auditPlan({ regions: [region('foundation', 'card')] });
+  assert.equal(result.valid, true);
+  assert.deepEqual(result.violations, []);
+});
+
+test('a T3 source used as a candidate is a violation', () => {
+  const result = auditPlan({ regions: [region('dribbble.com', 'hero-card')] });
+  assert.equal(result.valid, false);
+  assert.equal(result.violations[0].code, 'inspiration-source-as-candidate');
+});
+
+test('an explicit tier alias used as a candidate is a violation', () => {
+  const result = auditPlan({ regions: [region('t2', 'hero-card'), region('T3', 'other')] });
+  assert.equal(result.valid, false);
+  assert.equal(result.violations.length, 2);
+});
+
+test('a T1 registry source is allowed', () => {
+  const result = auditPlan({ regions: [region('ui.shadcn.com', 'data-table')] });
+  assert.equal(result.valid, true);
+});
