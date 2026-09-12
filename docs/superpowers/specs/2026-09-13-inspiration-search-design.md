@@ -132,8 +132,9 @@ Plan output shape:
 ```
 
 With `--channel components`, the plan uses the same envelope but each target carries
-candidate-oriented guidance for its T1 source and must still surface `requires-command`
-rather than an executable install command.
+candidate-oriented guidance for its T1 source; the plan surfaces the no-install rule as a
+constraint and emits no install command, while `requires-command` is returned by the
+registry query in `query-components.mjs`.
 
 `--normalize` emits an array of records matching
 `schemas/component-plan.schema.json → $defs/evidence`, that is: `id`, `type`, `source`,

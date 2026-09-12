@@ -65,7 +65,8 @@ Run `plan → search → capture → normalize → synthesize`.
 - Do not copy layout, brand marks, copy, or assets from any tier.
 - Do not let a T2 or T3 source enter `region.selection`.
 - Do not fabricate a reference when a fetch fails or is blocked; record the failure.
-- Do not install components during discovery. The component channel still returns
+- Do not install components during discovery. The component-channel plan emits tiered T1 sources
+  and never an install command; the registry query run via `query-components.mjs` returns
   `requires-command`, and installation remains a separate authorized action.
 - Do not treat a remembered gallery item or an unexecuted search as evidence.
 

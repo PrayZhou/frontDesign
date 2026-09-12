@@ -14,8 +14,15 @@ test('inspiration channel plans T2 and T3 by default', () => {
 test('components channel plans T1 only and marks candidates', () => {
   const plan = searchPlan({ channel: 'components', brief: 'data table with filters' });
   assert.deepEqual(plan.tiers, ['T1']);
+  assert.ok(plan.targets.length > 0);
   assert.ok(plan.targets.every((target) => target.tier === 'T1'));
+  assert.ok(plan.queries.length > 0);
   assert.ok(plan.queries.every((query) => query.purpose === 'component-candidate'));
+});
+
+test('components plan states the no-install rule', () => {
+  const plan = searchPlan({ channel: 'components', brief: 'data table' });
+  assert.ok(plan.constraints.some((constraint) => constraint.includes('requires-command')));
 });
 
 test('planning is deterministic and ignores stopwords', () => {
@@ -108,6 +115,24 @@ test('missing required reference fields are rejected', () => {
   assert.throws(() => normalizeCaptured({ references: [{ url: 'u', publisher: 'p', claim: 'c', tier: 'T9' }] }), /must be one of T1, T2, T3/);
 });
 
+test('an unmatched T1 URL falls back to the tier allowed use', () => {
+  const records = normalizeCaptured({
+    references: [
+      {
+        url: 'https://example-t1.test/button',
+        publisher: 'Example',
+        tier: 'T1',
+        claim: 'Buttons compose from a root and a label part.',
+        capturedAt: '2026-09-13',
+      },
+    ],
+  });
+  assert.equal(records.length, 1);
+  const constraints = records[0].constraints.join(' ');
+  assert.match(constraints, /component-candidate/);
+  assert.doesNotMatch(constraints, /transferable-principle/);
+});
+
 import { auditPlan } from './inspiration-planner.mjs';
 
 const region = (source, component) => ({
@@ -137,4 +162,26 @@ test('an explicit tier alias used as a candidate is a violation', () => {
 test('a T1 registry source is allowed', () => {
   const result = auditPlan({ regions: [region('ui.shadcn.com', 'data-table')] });
   assert.equal(result.valid, true);
+});
+
+test('audit flags bare brand labels and hosts for restricted sites', () => {
+  const flagged = [
+    'dribbble', 'Dribbble', 'dribbble.com', 'https://dribbble.com/shots/1',
+    'figma', 'figma.com', 't2', 't3',
+  ];
+  for (const source of flagged) {
+    const result = auditPlan({ regions: [region(source, 'hero-card')] });
+    assert.equal(result.valid, false, `expected ${source} to be flagged`);
+    assert.equal(result.violations.length, 1, `expected one violation for ${source}`);
+    assert.equal(result.violations[0].code, 'inspiration-source-as-candidate');
+  }
+});
+
+test('audit allows dotted non-host values and T1 sources', () => {
+  const allowed = ['layers.total', 'shadcn', 'ui.shadcn.com', '21st.dev', 'foundation'];
+  for (const source of allowed) {
+    const result = auditPlan({ regions: [region(source, 'card')] });
+    assert.equal(result.valid, true, `expected ${source} to be allowed`);
+    assert.deepEqual(result.violations, []);
+  }
 });

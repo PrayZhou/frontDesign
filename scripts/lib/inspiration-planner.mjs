@@ -68,7 +68,10 @@ function buildConstraints(tiers) {
     'Record URL, publisher, retrieval time, and license note for every source.',
     'Do not treat an unexecuted search or a remembered item as evidence.',
   ];
-  if (tiers.includes('T1')) constraints.push('T1 candidates still require verification against official docs or a registry.');
+  if (tiers.includes('T1')) {
+    constraints.push('T1 candidates still require verification against official docs or a registry.');
+    constraints.push('Registry queries return requires-command; discovery never installs.');
+  }
   if (tiers.includes('T2')) constraints.push('T2 sources are design evidence only; they must not become selection candidates.');
   if (tiers.includes('T3')) constraints.push('T3 sources must never become selection candidates.');
   return constraints;
@@ -142,7 +145,9 @@ function normalizeReference(reference, index) {
   }
 
   const matched = TIER_SITES.find((entry) => entry.tier === tier && reference.url.includes(entry.site));
-  const allowed = matched ? matched.allowedUse : ['transferable-principle'];
+  const allowed = matched
+    ? matched.allowedUse
+    : TIER_SITES.find((entry) => entry.tier === tier).allowedUse;
   const constraints = Array.isArray(reference.constraints) && reference.constraints.some(nonEmptyString)
     ? reference.constraints.filter(nonEmptyString)
     : [`Tier ${tier}: ${allowed.join(', ')} only.`];
@@ -179,6 +184,21 @@ export function normalizeCaptured(captured) {
 
 const RESTRICTED_SITES = TIER_SITES.filter((entry) => entry.tier !== 'T1');
 
+function hostOf(value) {
+  return value.replace(/^https?:\/\//, '').split('/')[0].toLowerCase();
+}
+
+function matchesRestrictedSite(value, entry) {
+  const alias = entry.tier.toLowerCase();
+  if (value === alias) return true;
+
+  const host = hostOf(entry.site);
+  if (hostOf(value) === host) return true;
+
+  const brand = host.split('.')[0];
+  return !value.includes('.') && !value.includes('/') && value === brand;
+}
+
 export function auditPlan(plan) {
   const violations = [];
   const regions = Array.isArray(plan?.regions) ? plan.regions : [];
@@ -190,9 +210,7 @@ export function auditPlan(plan) {
       .map((value) => value.trim().toLowerCase());
 
     for (const entry of RESTRICTED_SITES) {
-      const site = entry.site.toLowerCase();
-      const alias = entry.tier.toLowerCase();
-      if (values.some((value) => value === alias || value.includes(site))) {
+      if (values.some((value) => matchesRestrictedSite(value, entry))) {
         violations.push({
           code: 'inspiration-source-as-candidate',
           path: `/regions/${index}/selection`,
