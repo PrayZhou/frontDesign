@@ -105,3 +105,74 @@ export function searchPlan({ channel, brief = '', tiers, intent } = {}) {
 
   return { channel, status: 'ok', tiers: requestedTiers, queries, targets, constraints: buildConstraints(requestedTiers) };
 }
+
+const TIER_EVIDENCE_TYPE = { T1: 'official-doc', T2: 'observed-pattern', T3: 'observed-pattern' };
+const VALID_EVIDENCE_TYPES = new Set(['official-doc', 'observed-pattern', 'screenshot']);
+const VALID_CONFIDENCE = new Set(['high', 'medium', 'low']);
+const VALID_FRESHNESS = new Set(['current', 'needs-review', 'historical']);
+
+function nonEmptyString(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function normalizeReference(reference, index) {
+  if (!reference || typeof reference !== 'object' || Array.isArray(reference)) {
+    throw new Error(`captured.references[${index}] must be an object.`);
+  }
+  const tier = String(reference.tier ?? '').toUpperCase();
+  if (!TIER_ORDER.includes(tier)) {
+    throw new Error(`captured.references[${index}].tier must be one of T1, T2, T3.`);
+  }
+  for (const field of ['url', 'publisher', 'claim']) {
+    if (!nonEmptyString(reference[field])) {
+      throw new Error(`captured.references[${index}].${field} is required.`);
+    }
+  }
+  const confidence = reference.confidence ?? 'medium';
+  if (!VALID_CONFIDENCE.has(confidence)) {
+    throw new Error(`captured.references[${index}].confidence must be high, medium, or low.`);
+  }
+  const type = reference.type ?? TIER_EVIDENCE_TYPE[tier];
+  if (!VALID_EVIDENCE_TYPES.has(type)) {
+    throw new Error(`captured.references[${index}].type must be official-doc, observed-pattern, or screenshot.`);
+  }
+  const freshness = reference.freshness ?? 'current';
+  if (!VALID_FRESHNESS.has(freshness)) {
+    throw new Error(`captured.references[${index}].freshness must be current, needs-review, or historical.`);
+  }
+
+  const matched = TIER_SITES.find((entry) => entry.tier === tier && reference.url.includes(entry.site));
+  const allowed = matched ? matched.allowedUse : ['transferable-principle'];
+  const constraints = Array.isArray(reference.constraints) && reference.constraints.some(nonEmptyString)
+    ? reference.constraints.filter(nonEmptyString)
+    : [`Tier ${tier}: ${allowed.join(', ')} only.`];
+
+  const record = {
+    id: `insp-${String(index + 1).padStart(3, '0')}`,
+    type,
+    source: `${reference.publisher.trim()} — ${reference.url.trim()}`,
+    claim: reference.claim.trim(),
+    confidence,
+    capturedAt: nonEmptyString(reference.capturedAt) ? reference.capturedAt.trim() : new Date().toISOString().slice(0, 10),
+    freshness,
+    constraints,
+  };
+
+  const appliesWhen = Array.isArray(reference.appliesWhen) ? reference.appliesWhen.filter(nonEmptyString) : [];
+  if (appliesWhen.length) record.appliesWhen = appliesWhen;
+
+  const notes = [];
+  if (nonEmptyString(reference.license)) notes.push(`license: ${reference.license.trim()}`);
+  if (tier === 'T2' || tier === 'T3') notes.push('reference only — do not copy layout, brand, copy, or assets');
+  if (notes.length) record.notes = notes.join('; ');
+
+  return record;
+}
+
+export function normalizeCaptured(captured) {
+  const references = captured?.references;
+  if (!Array.isArray(references) || references.length === 0) {
+    throw new Error('captured.references must be a non-empty array.');
+  }
+  return references.map((reference, index) => normalizeReference(reference, index));
+}

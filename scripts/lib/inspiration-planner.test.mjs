@@ -34,3 +34,76 @@ test('T3 targets carry the no-candidate prohibition', () => {
   const target = TIER_SITES.find((entry) => entry.tier === 'T3');
   assert.ok(target.forbidden.includes('component-candidate'));
 });
+
+import { normalizeCaptured } from './inspiration-planner.mjs';
+import { validateComponentPlan } from './plan-validator.mjs';
+
+const captured = {
+  references: [
+    {
+      url: 'https://dribbble.com/shots/1',
+      publisher: 'Dribbble',
+      tier: 'T3',
+      claim: 'Dashboard hierarchy leads with one dominant task above the fold.',
+      confidence: 'medium',
+      capturedAt: '2026-09-13',
+      license: 'All rights reserved',
+      appliesWhen: ['dashboard'],
+    },
+    {
+      url: 'https://ui.shadcn.com/docs/components/data-table',
+      publisher: 'shadcn',
+      tier: 'T1',
+      claim: 'Data table composes through a root and toolbar parts.',
+      capturedAt: '2026-09-13',
+    },
+  ],
+};
+
+test('normalizeCaptured maps tiers to evidence records', () => {
+  const records = normalizeCaptured(captured);
+  assert.equal(records.length, 2);
+  assert.equal(records[0].id, 'insp-001');
+  assert.equal(records[0].type, 'observed-pattern');
+  assert.equal(records[1].type, 'official-doc');
+  assert.equal(records[1].confidence, 'medium');
+  assert.match(records[0].notes, /do not copy/);
+});
+
+test('normalized records satisfy the plan validator', () => {
+  const plan = {
+    version: 1,
+    designIntent: {
+      product: 'Operations dashboard',
+      audience: 'Support teams',
+      coreTask: 'Review account health',
+      visualDirection: 'Calm information-forward workspace',
+      density: 'comfortable',
+      principles: ['Make health scannable'],
+      evidence: normalizeCaptured(captured),
+    },
+    foundation: 'shadcn',
+    enhancer: null,
+    dependencies: [],
+    regions: [
+      {
+        id: 'summary',
+        need: 'See account health',
+        capabilities: ['data'],
+        selection: { source: 'foundation', component: 'card' },
+        reason: 'Reuse the foundation card',
+        states: ['loading', 'empty', 'error', 'success'],
+        responsive: 'Single column on mobile',
+        accessibility: { semantics: 'labelled region' },
+      },
+    ],
+  };
+  const result = validateComponentPlan(plan);
+  assert.equal(result.valid, true, JSON.stringify(result.errors));
+});
+
+test('missing required reference fields are rejected', () => {
+  assert.throws(() => normalizeCaptured({ references: [{ tier: 'T3' }] }), /url is required/);
+  assert.throws(() => normalizeCaptured({ references: [] }), /non-empty array/);
+  assert.throws(() => normalizeCaptured({ references: [{ url: 'u', publisher: 'p', claim: 'c', tier: 'T9' }] }), /must be one of T1, T2, T3/);
+});
