@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/component-driven-frontend/component-plan.schema.json",
+  "title": "Component-Driven Frontend Plan",
+  "type": "object",
+  "required": ["version", "designIntent", "foundation", "enhancer", "dependencies", "regions"],
+  "properties": {
+    "version": { "const": 1 },
+    "designIntent": {
+      "type": "object",
+      "required": ["product", "audience", "coreTask", "visualDirection", "density", "principles"],
+      "properties": {
+        "product": { "type": "string", "minLength": 1 },
+        "audience": { "type": "string", "minLength": 1 },
+        "coreTask": { "type": "string", "minLength": 1 },
+        "visualDirection": { "type": "string", "minLength": 1 },
+        "density": { "enum": ["compact", "comfortable", "spacious"] },
+        "principles": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "styleDirections": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/styleDirection" }
+        },
+        "selectedStyleDirection": { "type": "string", "minLength": 1 },
+        "visualLanguage": { "$ref": "#/$defs/visualLanguage" },
+        "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } },
+        "contentModel": { "$ref": "#/$defs/contentModel" },
+        "tokens": { "$ref": "#/$defs/tokens" },
+        "responsiveContract": { "$ref": "#/$defs/responsiveContract" },
+        "performanceBudget": { "$ref": "#/$defs/performanceBudget" },
+        "visualQaTargets": { "$ref": "#/$defs/visualQaTargets" },
+        "emotionalIntent": { "$ref": "#/$defs/emotionalIntent" }
+      }
+    },
+    "foundation": { "type": "string", "minLength": 1 },
+    "enhancer": { "type": ["string", "null"], "minLength": 1 },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "reason", "new"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string", "minLength": 1 },
+          "new": { "type": "boolean" }
+        }
+      }
+    },
+    "regions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "need", "capabilities", "selection", "reason", "states", "responsive", "accessibility"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "need": { "type": "string", "minLength": 1 },
+          "capabilities": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "enum": ["navigation", "forms", "controls", "data", "table", "chart", "metrics", "overlay", "feedback", "layout", "marketing", "interactive", "async"]
+            }
+          },
+          "selection": {
+            "type": "object",
+            "required": ["source", "component"],
+            "properties": {
+              "source": { "type": "string", "minLength": 1 },
+              "component": { "type": "string", "minLength": 1 }
+            }
+          },
+          "reason": { "type": "string", "minLength": 1 },
+          "states": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "responsive": { "type": "string", "minLength": 1 },
+          "accessibility": {
+            "type": "object",
+            "properties": {
+              "keyboard": { "type": "string", "minLength": 1 },
+              "focus": { "type": "string", "minLength": 1 },
+              "semantics": { "type": "string", "minLength": 1 }
+            }
+          },
+          "customReason": { "type": "string", "minLength": 1 },
+          "rejectedCandidates": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "contentModel": { "$ref": "#/$defs/contentModel" },
+          "dataViz": { "$ref": "#/$defs/dataViz" },
+          "performance": { "$ref": "#/$defs/performance" },
+          "emotionalRole": { "enum": ["focal", "supporting", "neutral", "transition"] },
+          "emotionalContribution": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "profileSection": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "styleProfile": {
+      "type": "object",
+      "required": ["shape", "material", "interaction"],
+      "properties": {
+        "shape": { "$ref": "#/$defs/profileSection" },
+        "material": { "$ref": "#/$defs/profileSection" },
+        "interaction": { "$ref": "#/$defs/profileSection" },
+        "typography": { "$ref": "#/$defs/profileSection" },
+        "color": { "$ref": "#/$defs/profileSection" },
+        "spacing": { "$ref": "#/$defs/profileSection" },
+        "effectBoundaries": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "styleDirection": {
+      "type": "object",
+      "required": ["id", "name", "description", "profile"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "minLength": 1 },
+        "profile": { "$ref": "#/$defs/styleProfile" },
+        "strengths": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "tradeoffs": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "evidence": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "emotionalEffect": { "type": "string", "minLength": 1 }
+      }
+    },
+    "visualLanguage": {
+      "type": "object",
+      "required": ["sourceDirectionId", "shape", "material", "interaction"],
+      "properties": {
+        "sourceDirectionId": { "type": "string", "minLength": 1 },
+        "shape": { "$ref": "#/$defs/profileSection" },
+        "material": { "$ref": "#/$defs/profileSection" },
+        "interaction": { "$ref": "#/$defs/profileSection" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["id", "type", "source", "claim", "confidence", "capturedAt"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "minLength": 1 },
+        "source": { "type": "string", "minLength": 1 },
+        "claim": { "type": "string", "minLength": 1 },
+        "appliesWhen": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "confidence": { "enum": ["high", "medium", "low"] },
+        "capturedAt": { "type": "string", "minLength": 1 },
+        "freshness": { "enum": ["current", "needs-review", "historical"] },
+        "constraints": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "notes": { "type": "string" }
+      }
+    },
+    "contentModel": {
+      "type": "object",
+      "properties": {
+        "units": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "realisticExample": { "type": "string", "minLength": 1 },
+        "states": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "emptyStatePurpose": { "type": "string", "minLength": 1 },
+        "errorRecovery": { "type": "string", "minLength": 1 }
+      }
+    },
+    "tokens": {
+      "type": "object",
+      "properties": {
+        "typography": { "$ref": "#/$defs/profileSection" },
+        "colorRoles": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "spacingRhythm": { "type": "string", "minLength": 1 },
+        "radiusTiers": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "elevationTiers": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "responsiveContract": {
+      "type": "object",
+      "properties": {
+        "desktop": { "type": "string", "minLength": 1 },
+        "tablet": { "type": "string", "minLength": 1 },
+        "mobile": { "type": "string", "minLength": 1 },
+        "transformations": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "zoomAndReflow": { "type": "string", "minLength": 1 }
+      }
+    },
+    "performanceBudget": {
+      "type": "object",
+      "properties": {
+        "maxNewDependencies": { "type": "integer", "minimum": 0 },
+        "avoidLargeAnimatedBlur": { "type": "boolean" },
+        "motionPolicy": { "type": "string", "minLength": 1 },
+        "fontPolicy": { "type": "string", "minLength": 1 }
+      }
+    },
+    "visualQaTargets": {
+      "type": "object",
+      "properties": {
+        "viewports": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "states": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "reducedMotion": { "type": "boolean" },
+        "comparisonSource": { "type": "string", "minLength": 1 }
+      }
+    },
+    "emotionalIntent": {
+      "type": "object",
+      "required": ["goal", "rationale", "carriers", "avoid", "qaQuestions"],
+      "properties": {
+        "goal": { "type": "string", "minLength": 1 },
+        "rationale": { "type": "string", "minLength": 1 },
+        "carriers": {
+          "type": "object",
+          "minProperties": 1,
+          "properties": {
+            "visual": { "type": "string", "minLength": 1 },
+            "content": { "type": "string", "minLength": 1 },
+            "interaction": { "type": "string", "minLength": 1 },
+            "structure": { "type": "string", "minLength": 1 },
+            "brand": { "type": "string", "minLength": 1 }
+          }
+        },
+        "avoid": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "qaQuestions": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "dataViz": {
+      "type": "object",
+      "properties": {
+        "question": { "type": "string", "minLength": 1 },
+        "markType": { "type": "string", "minLength": 1 },
+        "textAlternative": { "type": "string", "minLength": 1 },
+        "colorEncoding": { "type": "string", "minLength": 1 }
+      }
+    },
+    "performance": {
+      "type": "object",
+      "properties": {
+        "clientOnly": { "type": "boolean" },
+        "largeAsset": { "type": "boolean" },
+        "animationCost": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
