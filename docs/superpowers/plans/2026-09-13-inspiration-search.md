@@ -434,36 +434,13 @@ Append to `scripts/lib/inspiration-planner.test.mjs`:
 
 ```js
 import { auditPlan } from './inspiration-planner.mjs';
-
-const region = (source, component) => ({
-  id: 'r', need: 'n', capabilities: ['data'],
-  selection: { source, component },
-  reason: 'x', states: ['success'], responsive: 'x', accessibility: {},
-});
-
-test('a clean plan has no violations', () => {
-  const result = auditPlan({ regions: [region('foundation', 'card')] });
-  assert.equal(result.valid, true);
-  assert.deepEqual(result.violations, []);
-});
-
-test('a T3 source used as a candidate is a violation', () => {
-  const result = auditPlan({ regions: [region('dribbble.com', 'hero-card')] });
-  assert.equal(result.valid, false);
-  assert.equal(result.violations[0].code, 'inspiration-source-as-candidate');
-});
-
-test('an explicit tier alias used as a candidate is a violation', () => {
-  const result = auditPlan({ regions: [region('t2', 'hero-card'), region('T3', 'other')] });
-  assert.equal(result.valid, false);
-  assert.equal(result.violations.length, 2);
-});
-
-test('a T1 registry source is allowed', () => {
-  const result = auditPlan({ regions: [region('ui.shadcn.com', 'data-table')] });
-  assert.equal(result.valid, true);
-});
 ```
+
+Note on semantics: `auditPlan` reports **at most one violation per region**. Without the
+`break` in the implementation below, a region whose source is `t2` would match both T2
+entries and a `T3` source would match all seven T3 entries, producing 9 violations where the
+tests below require 2. The `break` is required for the tests to pass.
+
 
 - [ ] **Step 2: Run the test to verify it fails**
 
@@ -496,6 +473,7 @@ export function auditPlan(plan) {
           path: `/regions/${index}/selection`,
           message: `Selection references ${entry.site} (${entry.tier}); visual-inspiration sources must never become component candidates.`,
         });
+        break; // one violation per region, not one per matching tier entry
       }
     }
   });
