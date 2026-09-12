@@ -43,4 +43,4 @@ Do not treat model memory, an unexecuted search command, a remembered gallery it
 
 The Skill does not automatically browse or install anything. If an external source is explicitly obtained, retain its URL, publisher, retrieval time, usage/license note, and the exact claim it supports. A source adapter may return `requires-command`, `offline`, `unavailable`, or `verification-failed`; none of these statuses is evidence that a reference exists.
 
-Visual reference research is separate from installable component discovery. Do not turn a visual inspiration source into a Candidate, and do not turn a Registry Candidate into a visual-quality authority without inspecting its rendered behavior.
+Visual reference research is separate from installable component discovery. Do not turn a visual inspiration source into a Candidate, and do not turn a Registry Candidate into a visual-quality authority without inspecting its rendered behavior. See [inspiration search](inspiration-search.md) for the tiered source model and the capture/normalize protocol that feeds evidence records.

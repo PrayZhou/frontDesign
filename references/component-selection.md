@@ -120,6 +120,8 @@ Use this exact top-level shape:
 }
 ```
 
+`selection.source` must be a project, foundation, enhancer, registry, or `custom` source. A T2 or T3 visual-inspiration source is never valid here; run `inspiration-search.mjs --audit-plan <plan.json>` to catch a leak. See [inspiration search](inspiration-search.md).
+
 All six Design Intent fields are required, including non-empty `coreTask`. Use a string for `foundation`; use a string or `null` for `enhancer`. Every dependency object requires `name`, `reason`, and boolean `new`. Every region requires `id`, `need`, non-empty `capabilities`, non-empty `selection.source`, non-empty `selection.component`, `reason`, non-empty `states`, `responsive`, and `accessibility`. Selection sources may be `project`, `foundation`, `custom`, the declared foundation, or the declared enhancer; the `enhancer` alias is valid only when an enhancer is declared. A known foundation source that differs from `foundation`, or a known visual-enhancer source that differs from `enhancer`, is an error. Regions carrying `interactive` require non-empty `keyboard`, `focus`, and `semantics`. Regions carrying `data` or `async` must include all applicable `loading`, `empty`, `error`, and `success` states; strict validation treats omissions as blocking warnings.
 
 For `selection.source: "custom"`, also add:

@@ -113,4 +113,4 @@ Use these cards as portable quality checks distilled from strong frontend work. 
 
 ## Reference record
 
-When a card is adapted from a supplied screenshot, Figma file, official documentation, or observed product, preserve that evidence separately using [research-ingestion.md](research-ingestion.md). The card itself remains a reusable principle and must not claim ownership of another product's design.
+When a card is adapted from a supplied screenshot, Figma file, official documentation, or observed product, preserve that evidence separately using [research-ingestion.md](research-ingestion.md). The card itself remains a reusable principle and must not claim ownership of another product's design. A card may be distilled from a tiered inspiration search; read [inspiration-search.md](inspiration-search.md) for which tiers may inform a card and which are forbidden.

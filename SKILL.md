@@ -13,6 +13,8 @@ Do not use this workflow for logic-only React bugs such as reducer or state-tran
 
 Use a **lightweight path** only when a bounded edit genuinely requires component-system or design judgment—for example choosing a semantic color token, preserving a component variant, or checking an accessibility state. Inspect only the affected component and tokens, state the narrow intent, implement the edit, and run its relevant check. Enter the full route below only if the task expands into component selection, composition, or page-level visual direction.
 
+Search expands the evidence you may cite; it never replaces verification. An inspiration source must never become a component candidate, and no source may be copied.
+
 ## Authority and invariants
 
 Apply evidence in this order: explicit user requirements; brand and accessibility rules; Figma, Code Connect, or other supplied design truth; the project's current tokens, components, and foundation; verified official source material; this skill's defaults. Stop and surface contradictions instead of silently overriding a higher authority.
@@ -32,6 +34,14 @@ The machine-readable structure contract is [component-plan.schema.json](schemas/
    ```
 
    If no repository is available, label the stack and foundation as assumptions and defer exact component names. Read [source adapters](references/source-adapters.md) when choosing where to look.
+
+   When the brief gives no visual direction, or the user asks for inspiration, run the inspiration channel before step 2 and read [inspiration search](references/inspiration-search.md):
+
+   ```bash
+   node .agents/skills/component-driven-frontend/scripts/inspiration-search.mjs --channel inspiration --brief '<brief>' --json
+   ```
+
+   Execute the searches it plans with your web tools, then normalize what you actually captured into `designIntent.evidence`. A source that was not retrieved is not evidence, and no source may be copied.
 
 2. Read [design intent](references/design-intent.md), [visual language](references/visual-language.md), and [research ingestion](references/research-ingestion.md). Resolve explicit user/brand evidence before using Skill defaults. When the brief does not already prescribe a visual direction, propose 2–4 materially different Style Directions, compare their strengths and tradeoffs, and select exactly one before continuing. Derive one visual language from that selection; never combine multiple directions in one implementation. Then briefly output:
 
@@ -61,7 +71,11 @@ The machine-readable structure contract is [component-plan.schema.json](schemas/
    node .agents/skills/component-driven-frontend/scripts/query-components.mjs --source aceternity --query 'background' --root . --json
    ```
 
-   Treat `requires-command` as an unexecuted next action, not evidence of availability.
+   Treat `requires-command` as an unexecuted next action, not evidence of availability. When the candidate space is still open, run the component channel first and read [inspiration search](references/inspiration-search.md) for the tiered source list:
+
+   ```bash
+   node .agents/skills/component-driven-frontend/scripts/inspiration-search.mjs --channel components --brief '<brief>' --json
+   ```
 
 4. Produce the full JSON contract described in [component selection](references/component-selection.md), plus this concise summary:
 
