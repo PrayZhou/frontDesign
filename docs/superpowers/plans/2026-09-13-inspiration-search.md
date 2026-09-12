@@ -612,8 +612,10 @@ try {
   } else if (options['audit-plan']) {
     const result = auditPlan(await readJsonFile(options['audit-plan']));
     if (options.json) printJson(result);
-    else process.stdout.write(`${result.valid ? 'valid' : 'invalid'}: ${result.violations.length} violations\n`);
-    for (const item of result.violations) process.stdout.write(`${item.code} ${item.path}: ${item.message}\n`);
+    else {
+      process.stdout.write(`${result.valid ? 'valid' : 'invalid'}: ${result.violations.length} violations\n`);
+      for (const item of result.violations) process.stdout.write(`${item.code} ${item.path}: ${item.message}\n`);
+    }
     if (!result.valid) process.exitCode = 1;
   } else if (options.normalize) {
     if (!options.input) throw new Error('Option --input is required when --normalize is used.');
@@ -636,6 +638,10 @@ try {
 ```
 
 Note: `parseArgs` rejects unknown options and requires values not to start with `--`, so `--channel inspiration` with no `--brief` reaches the `--brief is required` branch. Confirm by running the last test.
+
+Note: the audit branch prints the per-violation text lines only when `--json` is absent. Printing
+them unconditionally would append plain text after the JSON payload and break `--json` parsing,
+which the Step 1 test asserts. This mirrors `scripts/validate-component-plan.mjs`.
 
 - [ ] **Step 4: Run the test to verify it passes**
 
