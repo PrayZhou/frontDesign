@@ -434,12 +434,47 @@ Append to `scripts/lib/inspiration-planner.test.mjs`:
 
 ```js
 import { auditPlan } from './inspiration-planner.mjs';
+
+const region = (source, component) => ({
+  id: 'r', need: 'n', capabilities: ['data'],
+  selection: { source, component },
+  reason: 'x', states: ['success'], responsive: 'x', accessibility: {},
+});
+
+test('a clean plan has no violations', () => {
+  const result = auditPlan({ regions: [region('foundation', 'card')] });
+  assert.equal(result.valid, true);
+  assert.deepEqual(result.violations, []);
+});
+
+test('a T3 source used as a candidate is a violation', () => {
+  const result = auditPlan({ regions: [region('dribbble.com', 'hero-card')] });
+  assert.equal(result.valid, false);
+  assert.equal(result.violations[0].code, 'inspiration-source-as-candidate');
+});
+
+test('an explicit tier alias used as a candidate is a violation', () => {
+  const result = auditPlan({ regions: [region('t2', 'hero-card'), region('T3', 'other')] });
+  assert.equal(result.valid, false);
+  assert.equal(result.violations.length, 2);
+});
+
+test('a T1 registry source is allowed', () => {
+  const result = auditPlan({ regions: [region('ui.shadcn.com', 'data-table')] });
+  assert.equal(result.valid, true);
+});
 ```
 
 Note on semantics: `auditPlan` reports **at most one violation per region**. Without the
 `break` in the implementation below, a region whose source is `t2` would match both T2
 entries and a `T3` source would match all seven T3 entries, producing 9 violations where the
 tests below require 2. The `break` is required for the tests to pass.
+
+Note: the final whole-branch review later found that a substring matcher misses bare brand
+names (`dribbble`, `Dribbble`, `mobbin`, ...) — the spelling the reference doc's own tier table
+invites — so the shipped matcher normalizes to host/brand comparison
+(`hostOf` / `matchesRestrictedSite`, below) and the shipped test file adds probes for bare
+names, dotted non-hosts (`layers.total`), and T1 sources. The code below is the shipped state.
 
 
 - [ ] **Step 2: Run the test to verify it fails**
@@ -454,6 +489,21 @@ Append to `scripts/lib/inspiration-planner.mjs`:
 ```js
 const RESTRICTED_SITES = TIER_SITES.filter((entry) => entry.tier !== 'T1');
 
+function hostOf(value) {
+  return value.replace(/^https?:\/\//, '').split('/')[0].toLowerCase();
+}
+
+function matchesRestrictedSite(value, entry) {
+  const alias = entry.tier.toLowerCase();
+  if (value === alias) return true;
+
+  const host = hostOf(entry.site);
+  if (hostOf(value) === host) return true;
+
+  const brand = host.split('.')[0];
+  return !value.includes('.') && !value.includes('/') && value === brand;
+}
+
 export function auditPlan(plan) {
   const violations = [];
   const regions = Array.isArray(plan?.regions) ? plan.regions : [];
@@ -465,15 +515,13 @@ export function auditPlan(plan) {
       .map((value) => value.trim().toLowerCase());
 
     for (const entry of RESTRICTED_SITES) {
-      const site = entry.site.toLowerCase();
-      const alias = entry.tier.toLowerCase();
-      if (values.some((value) => value === alias || value.includes(site))) {
+      if (values.some((value) => matchesRestrictedSite(value, entry))) {
         violations.push({
           code: 'inspiration-source-as-candidate',
           path: `/regions/${index}/selection`,
           message: `Selection references ${entry.site} (${entry.tier}); visual-inspiration sources must never become component candidates.`,
         });
-        break; // one violation per region, not one per matching tier entry
+        break;
       }
     }
   });
@@ -744,7 +792,8 @@ Run `plan → search → capture → normalize → synthesize`.
 - Do not copy layout, brand marks, copy, or assets from any tier.
 - Do not let a T2 or T3 source enter `region.selection`.
 - Do not fabricate a reference when a fetch fails or is blocked; record the failure.
-- Do not install components during discovery. The component channel still returns
+- Do not install components during discovery. The component-channel plan emits tiered T1 sources
+  and never an install command; the registry query run via `query-components.mjs` returns
   `requires-command`, and installation remains a separate authorized action.
 - Do not treat a remembered gallery item or an unexecuted search as evidence.
 
