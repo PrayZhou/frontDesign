@@ -5,7 +5,7 @@
 ### Turn product intent into verified, expressive interfaces
 
 <p>
-  A design-aware Comate skill for planning and building polished React interfaces
+  A design-aware Agent skill for planning and building polished React interfaces
   with verified components, coherent visual direction, and responsive visual QA.
 </p>
 
