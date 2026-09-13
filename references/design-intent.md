@@ -34,11 +34,24 @@ Produce all six fields in a compact Design Intent:
 
 Examples set boundaries, not templates: “calm operational workspace; dense tables but generous section spacing; no decorative glow” or “editorial commerce; product imagery leads; restrained motion; no glass surfaces.” Do not copy their palettes or layouts.
 
+## Source the feeling
+
+Record where the feeling comes from before deriving it.
+
+| `source` | When | Binding | Label |
+|---|---|---|---|
+| `user-provided` | The user named the feeling, or picked one of the candidates you offered | Hard — conflicting Style Directions and candidates are rejected with a recorded reason | none |
+| `inferred` (or absent) | You derived it from product, audience, and core task | Soft — it orders and justifies, but does not reject | `Assumption — user may override` |
+
+When the brief names no feeling but the page needs one, offer 2–4 candidate feelings, each with a one-line rationale and the carriers that would express it, then let the user pick one or write their own. Never offer more than four, and never silently replace a user-stated feeling with your own.
+
+For `user-provided`, copy the user's words verbatim into `userPhrase`; the `goal` still states the experience, not the adjective. `高级` must become an experience such as `confidence that the tool will not waste my time`.
+
 ## Derive emotional intent
 
 `designIntent.emotionalIntent` is optional. A plan without it is valid and its absence is not a defect. Add it when the brief asks for feeling, atmosphere, or immediate appeal, or when the page carries brand expression, first-visit conversion, narrative content, or product demonstration. Derive it along this chain:
 
-`product type → audience state → core task → pressure or expectation → desired feeling → carriers`
+`user-stated feeling (if any) → product type → audience state → core task → pressure or expectation → desired feeling → carriers`
 
 | Field | Decide |
 |---|---|

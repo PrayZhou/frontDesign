@@ -36,7 +36,11 @@ Effects are optional. If glass, blur, shadows, parallax, video, or pointer-drive
 
 ## Emotional review
 
-When the plan declares `emotionalIntent.qaQuestions`, those questions join this rendered review. Record what is observed for each one—not a score, and not a claim that the feeling was achieved. Run these default checks alongside them:
+When the plan declares `emotionalIntent.qaQuestions`, those questions join this rendered review.
+
+When `emotionalIntent.source` is `user-provided`, those questions are mandatory: answer each against the user's stated feeling rather than a feeling you inferred. A failed answer is still a design finding, not an automatic build failure.
+
+Record what is observed for each one—not a score, and not a claim that the feeling was achieved. Run these default checks alongside them:
 
 ```text
 - Does the first viewport establish one clear focal point quickly?

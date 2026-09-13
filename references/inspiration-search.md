@@ -20,6 +20,16 @@ prescribed by the user, brand, or supplied design truth.
 An inspiration source must never become a `selection` candidate. A registry candidate must
 never become a visual-quality authority before its rendered behavior is inspected.
 
+## Stated feeling
+
+When the user has named a feeling, pass it to the plan so the seed queries lead with it:
+
+```bash
+node .agents/skills/component-driven-frontend/scripts/inspiration-search.mjs --channel inspiration --brief '<brief>' --emotion '<user words>' --json
+```
+
+`--emotion` outranks `emotionalIntent.userPhrase` and `emotionalIntent.goal` from `--intent`. Emotion seeds are added to the inspiration channel only; the components channel keeps the metadata and the binding constraint but no emotion tokens. Chinese input is tokenized into 2–6 character terms, with longer runs split into 2-character windows, and a CJK token uses the Chinese tier suffix (`组件库`, `真实产品界面`, `设计灵感`). When the resolved feeling is `user-provided`, `binding` is `hard` and the plan adds a constraint requiring conflicting Style Directions or candidates to be rejected with a recorded reason. Seed queries remain starting points to be rewritten, not the search to run.
+
 ## Three-tier trust model
 
 | Tier | Representative sources | Allowed use | Forbidden |

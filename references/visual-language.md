@@ -33,6 +33,8 @@ A region may declare `emotionalRole` plus an optional `emotionalContribution`, b
 
 At most one region per page should be `focal`; a page of focal regions has no focus. Leave the field off regions that simply do their job. Express the feeling through the shape, material, and interaction systems already approved above—not through new effects added for emotional reasons.
 
+When `emotionalIntent.source` is `user-provided`, the selected direction's `emotionalEffect` must state how its shape, material, and interaction satisfy the user's own words, and every candidate you reject for conflicting with them must carry that reason in its `tradeoffs`. Do not silently drop a conflicting candidate.
+
 ## Build shape rhythm
 
 Use at most three intentional radius tiers:

@@ -38,8 +38,10 @@ The machine-readable structure contract is [component-plan.schema.json](schemas/
    When the brief gives no visual direction, or the user asks for inspiration, run the inspiration channel before step 2 and read [inspiration search](references/inspiration-search.md):
 
    ```bash
-   node .agents/skills/component-driven-frontend/scripts/inspiration-search.mjs --channel inspiration --brief '<brief>' --json
+   node .agents/skills/component-driven-frontend/scripts/inspiration-search.mjs --channel inspiration --brief '<brief>' [--emotion '<stated feeling>'] --json
    ```
+
+   Pass `--emotion` when the user has already named the feeling they want.
 
    Execute the searches it plans with your web tools, then normalize what you actually captured into `designIntent.evidence`. A source that was not retrieved is not evidence, and no source may be copied.
 
@@ -51,16 +53,19 @@ The machine-readable structure contract is [component-plan.schema.json](schemas/
    Visual direction: ... | Density: ... | Principles: ...
    ```
 
-   Emotional intent is optional. When the brief asks for feeling, atmosphere, or immediate appeal—or when the page performs brand expression, first-visit conversion, narrative content, or product demonstration—derive it with `Derive emotional intent` in [design intent](references/design-intent.md) and also output:
+   Emotional intent is optional, but when it appears the user's own words outrank your inference. If the brief does not state a feeling and the page needs one—brand expression, first-visit conversion, narrative content, or product demonstration—offer 2–4 candidate feelings, each with a one-line rationale and how it would be carried, and let the user pick one or write their own. Then derive it with `Derive emotional intent` in [design intent](references/design-intent.md) and output:
 
    ```text
    Emotional Intent
+   Source: user-stated | inferred
    Goal: ... | Rationale: ...
    Carriers: ... | Avoid: ...
    QA questions: ...
    ```
 
-   Label an inferred goal `Assumption — user may override`. Emotional intent never authorizes a second foundation, an extra enhancer, or decorative effects that the content hierarchy does not justify.
+   A user-stated feeling is explicit user evidence and a hard constraint: record `designIntent.emotionalIntent.source: "user-provided"` and keep the user's words in `userPhrase`, and do not label it `Assumption — user may override`. Reject any Style Direction or component candidate that conflicts, recording the reason in that direction's `tradeoffs` or the region's `rejectedCandidates`. An inferred feeling stays soft: record `source: "inferred"` and label the goal `Assumption — user may override`; it orders and justifies but does not reject.
+
+   Emotional intent never authorizes a second foundation, an extra enhancer, or decorative effects that the content hierarchy does not justify.
 
 3. Before components, apply only relevant [reference cards](references/visual-reference-cards.md) and define content realism, token rhythm, responsive transformations, data questions, and effect/performance boundaries. Read [content and data](references/content-and-data.md) and [responsive/performance](references/performance-responsive.md). Map each page region to capabilities before names. Read [component selection](references/component-selection.md), then query the project and only relevant verified sources:
 
@@ -76,6 +81,8 @@ The machine-readable structure contract is [component-plan.schema.json](schemas/
    ```bash
    node .agents/skills/component-driven-frontend/scripts/inspiration-search.mjs --channel components --brief '<brief>' --json
    ```
+
+   When `designIntent.emotionalIntent.source` is `user-provided`, every candidate you reject for conflicting with the stated feeling must appear in the region's `rejectedCandidates` with that reason.
 
 4. Produce the full JSON contract described in [component selection](references/component-selection.md), plus this concise summary:
 
