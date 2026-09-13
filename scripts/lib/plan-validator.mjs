@@ -252,6 +252,14 @@ function validateEmotionalIntent(designIntent, errors, warnings) {
     ));
   }
 
+  if (isNonEmptyString(intent.userPhrase) && intent.source !== 'user-provided') {
+    warnings.push(issue(
+      'emotional-user-phrase-unmarked',
+      '/designIntent/emotionalIntent/source',
+      'emotionalIntent.userPhrase records the user\'s own words; set source to "user-provided" so the feeling stays binding.',
+    ));
+  }
+
   if (!isNonEmptyString(intent.goal)) {
     errors.push(issue(
       'emotional-goal-required',

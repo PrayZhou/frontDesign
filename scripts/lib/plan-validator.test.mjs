@@ -68,3 +68,23 @@ test('a user-stated feeling with the user phrase is clean', () => {
   assert.equal(result.valid, true);
   assert.equal(result.warnings.length, 0, JSON.stringify(result.warnings));
 });
+
+test('a user phrase without a source warns instead of demoting to soft', () => {
+  const { source, ...withoutSource } = validEmotion;
+  const result = validateComponentPlan(basePlan({
+    ...withoutSource,
+    userPhrase: '想要温暖治愈的感觉',
+  }));
+  assert.equal(result.valid, true, JSON.stringify(result.errors));
+  assert.ok(result.warnings.some((item) => item.code === 'emotional-user-phrase-unmarked'), JSON.stringify(result.warnings));
+});
+
+test('a user phrase marked inferred warns instead of demoting to soft', () => {
+  const result = validateComponentPlan(basePlan({
+    ...validEmotion,
+    source: 'inferred',
+    userPhrase: '想要温暖治愈的感觉',
+  }));
+  assert.equal(result.valid, true, JSON.stringify(result.errors));
+  assert.ok(result.warnings.some((item) => item.code === 'emotional-user-phrase-unmarked'), JSON.stringify(result.warnings));
+});
