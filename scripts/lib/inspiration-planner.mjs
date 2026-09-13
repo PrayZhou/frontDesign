@@ -116,7 +116,18 @@ function planTokens(text) {
   return dedupeTokens([...tokenizeBrief(text), ...tokenizeCJK(text)]);
 }
 
-function buildConstraints(tiers) {
+function isRecord(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function firstNonEmpty(...values) {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim().length > 0) return value.trim();
+  }
+  return '';
+}
+
+function buildConstraints(tiers, binding) {
   const constraints = [
     'Distill transferable principles; never copy layout, brand, copy, or assets.',
     'Record URL, publisher, retrieval time, and license note for every source.',
@@ -128,20 +139,40 @@ function buildConstraints(tiers) {
   }
   if (tiers.includes('T2')) constraints.push('T2 sources are design evidence only; they must not become selection candidates.');
   if (tiers.includes('T3')) constraints.push('T3 sources must never become selection candidates.');
+  if (binding === 'hard') {
+    constraints.push('The user-stated feeling is binding: reject Style Directions or candidates that conflict, and record the reason.');
+  }
   return constraints;
 }
 
-export function searchPlan({ channel, brief = '', tiers, intent } = {}) {
+export function searchPlan({ channel, brief = '', tiers, intent, emotion } = {}) {
   const purpose = CHANNEL_PURPOSE[channel];
   if (!purpose) throw new Error(`Unknown channel: ${channel}. Use inspiration or components.`);
 
   const requestedTiers = normalizeTiers(tiers) ?? [...CHANNEL_TIERS[channel]];
-  const designIntent = intent && typeof intent === 'object' ? intent.designIntent : undefined;
+  const designIntent = isRecord(intent) ? intent.designIntent : undefined;
+  const emotionalIntent = isRecord(designIntent?.emotionalIntent) ? designIntent.emotionalIntent : undefined;
   const extra = [
     designIntent?.visualDirection ?? '',
     ...(Array.isArray(designIntent?.principles) ? designIntent.principles : []),
   ].join(' ');
-  const tokens = planTokens(`${brief} ${extra}`).slice(0, MAX_QUERY_TOKENS);
+
+  const flagEmotion = nonEmptyString(emotion) ? emotion.trim() : '';
+  const planEmotion = firstNonEmpty(emotionalIntent?.userPhrase, emotionalIntent?.goal);
+  const emotionText = flagEmotion || planEmotion;
+  const emotionSource = emotionText
+    ? (flagEmotion ? 'user-provided' : (emotionalIntent?.source ?? 'inferred'))
+    : null;
+  const binding = emotionSource === 'user-provided' ? 'hard' : (emotionSource ? 'soft' : null);
+
+  const emotionTokens = channel === 'inspiration' ? tokenizeCJK(emotionText) : [];
+  const subjectTokens = planTokens(`${brief} ${extra}`);
+  const tokens = emotionTokens.length
+    ? dedupeTokens([
+        ...emotionTokens.slice(0, MAX_QUERY_TOKENS - 1),
+        ...subjectTokens,
+      ]).slice(0, MAX_QUERY_TOKENS)
+    : subjectTokens.slice(0, MAX_QUERY_TOKENS);
 
   const queries = [];
   for (const tier of requestedTiers) {
@@ -160,7 +191,15 @@ export function searchPlan({ channel, brief = '', tiers, intent } = {}) {
       forbidden: [...entry.forbidden],
     }));
 
-  return { channel, status: 'ok', tiers: requestedTiers, queries, targets, constraints: buildConstraints(requestedTiers) };
+  return {
+    channel,
+    status: 'ok',
+    tiers: requestedTiers,
+    emotion: emotionText ? { source: emotionSource, text: emotionText, binding } : null,
+    queries,
+    targets,
+    constraints: buildConstraints(requestedTiers, binding),
+  };
 }
 
 const TIER_EVIDENCE_TYPE = { T1: 'official-doc', T2: 'observed-pattern', T3: 'observed-pattern' };

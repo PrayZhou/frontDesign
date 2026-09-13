@@ -200,3 +200,55 @@ test('an English brief keeps its Latin tier suffixes', () => {
     'operations design inspiration', 'dashboard design inspiration', 'support design inspiration',
   ]);
 });
+
+const inferredIntent = (overrides = {}) => ({
+  designIntent: {
+    emotionalIntent: {
+      goal: 'warm curiosity',
+      rationale: 'First-time visitors need to trust the shop.',
+      carriers: { visual: 'One real photograph' },
+      avoid: ['Template gradients'],
+      qaQuestions: ['Is there one focal point in the first viewport?'],
+      ...overrides,
+    },
+  },
+});
+
+test('a stated feeling leads the plan without dropping the brief subject', () => {
+  const plan = searchPlan({ channel: 'inspiration', brief: 'bakery homepage', emotion: '温暖治愈' });
+  assert.equal(plan.emotion.source, 'user-provided');
+  assert.equal(plan.emotion.binding, 'hard');
+  assert.equal(plan.queries[0].text, '温暖治愈 真实产品界面');
+  assert.ok(plan.queries.some((query) => query.text.startsWith('bakery ')));
+  assert.ok(plan.constraints.some((constraint) => /binding/.test(constraint)));
+});
+
+test('the emotion flag outranks the plan emotional intent', () => {
+  const plan = searchPlan({
+    channel: 'inspiration',
+    brief: 'dashboard',
+    emotion: '温暖治愈',
+    intent: inferredIntent({ source: 'inferred' }),
+  });
+  assert.equal(plan.emotion.text, '温暖治愈');
+  assert.equal(plan.emotion.source, 'user-provided');
+  assert.equal(plan.emotion.binding, 'hard');
+});
+
+test('an inferred feeling stays soft with no binding constraint', () => {
+  const plan = searchPlan({ channel: 'inspiration', brief: 'bakery', intent: inferredIntent() });
+  assert.equal(plan.emotion.source, 'inferred');
+  assert.equal(plan.emotion.binding, 'soft');
+  assert.ok(!plan.constraints.some((constraint) => /binding/.test(constraint)));
+});
+
+test('the components channel carries emotion metadata but no emotion tokens', () => {
+  const plan = searchPlan({ channel: 'components', brief: 'data table', emotion: '温暖治愈' });
+  assert.equal(plan.emotion.binding, 'hard');
+  assert.ok(plan.queries.every((query) => !/[\u4e00-\u9fff]/.test(query.text)));
+});
+
+test('a plan with no feeling keeps the emotion field null', () => {
+  const plan = searchPlan({ channel: 'inspiration', brief: 'bakery' });
+  assert.equal(plan.emotion, null);
+});

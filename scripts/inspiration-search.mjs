@@ -5,7 +5,7 @@ import { readJsonFile } from './lib/project-inspector.mjs';
 import { searchPlan, normalizeCaptured, auditPlan } from './lib/inspiration-planner.mjs';
 
 const help = `Usage:
-  inspiration-search.mjs --channel <inspiration|components> --brief <text> [--intent <plan.json>] [--tiers T1,T2,T3] [--json]
+  inspiration-search.mjs --channel <inspiration|components> --brief <text> [--emotion <text>] [--intent <plan.json>] [--tiers T1,T2,T3] [--json]
   inspiration-search.mjs --normalize --input <captured.json> [--out <evidence.json>] [--json]
   inspiration-search.mjs --audit-plan <plan.json> [--json] [--help]
 `;
@@ -14,6 +14,7 @@ try {
   const options = parseArgs(process.argv.slice(2), {
     channel: { type: 'string' },
     brief: { type: 'string' },
+    emotion: { type: 'string' },
     intent: { type: 'string' },
     tiers: { type: 'string' },
     normalize: { type: 'boolean' },
@@ -44,7 +45,7 @@ try {
     if (!options.channel) throw new Error('Option --channel is required.');
     if (!options.brief) throw new Error('Option --brief is required.');
     const intent = options.intent ? await readJsonFile(options.intent) : undefined;
-    const plan = searchPlan({ channel: options.channel, brief: options.brief, tiers: options.tiers, intent });
+    const plan = searchPlan({ channel: options.channel, brief: options.brief, tiers: options.tiers, intent, emotion: options.emotion });
     if (options.json) printJson(plan);
     else process.stdout.write(`${plan.status}: ${plan.queries.length} queries across ${plan.targets.length} targets\n`);
   }

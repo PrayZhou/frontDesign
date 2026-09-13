@@ -58,3 +58,13 @@ test('missing required options exit 2', async () => {
     (error) => error.code === 2 && /--brief is required/.test(error.stderr),
   );
 });
+
+test('--emotion appears in the JSON plan', async () => {
+  const { stdout } = await run(process.execPath, [
+    cli, '--channel', 'inspiration', '--brief', 'bakery', '--emotion', '温暖治愈', '--json',
+  ]);
+  const plan = JSON.parse(stdout);
+  assert.equal(plan.emotion.text, '温暖治愈');
+  assert.equal(plan.emotion.source, 'user-provided');
+  assert.equal(plan.emotion.binding, 'hard');
+});
