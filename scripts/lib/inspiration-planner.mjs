@@ -2,9 +2,9 @@ const TIER_ORDER = ['T1', 'T2', 'T3'];
 const CHANNEL_TIERS = { inspiration: ['T2', 'T3'], components: ['T1'] };
 const CHANNEL_PURPOSE = { inspiration: 'style-direction', components: 'component-candidate' };
 const TIER_QUERY_SUFFIX = {
-  T1: 'component library',
-  T2: 'real product ui',
-  T3: 'design inspiration',
+  T1: { latin: 'component library', cjk: '组件库' },
+  T2: { latin: 'real product ui', cjk: '真实产品界面' },
+  T3: { latin: 'design inspiration', cjk: '设计灵感' },
 };
 const STOPWORDS = new Set([
   'the', 'and', 'for', 'with', 'that', 'this', 'from', 'into', 'your', 'our',
@@ -62,6 +62,60 @@ export function tokenizeBrief(brief = '') {
   return tokens;
 }
 
+const CJK_FILLER_CHARS = new Set('的了和与及或我你他她它们想要这那');
+const CJK_STOPWORDS = new Set(['感觉', '页面', '风格', '设计', '一个', '一种']);
+const CJK_RUN = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u3040-\u30ff]+/g;
+const CJK_CHAR = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u3040-\u30ff]/;
+
+function cjkRunTokens(run) {
+  let trimmed = run;
+  while (trimmed.length && CJK_FILLER_CHARS.has(trimmed[0])) trimmed = trimmed.slice(1);
+  while (trimmed.length && CJK_FILLER_CHARS.has(trimmed[trimmed.length - 1])) {
+    trimmed = trimmed.slice(0, -1);
+  }
+  if (trimmed.length < 2) return [];
+  if (trimmed.length <= 6) return [trimmed];
+  const windows = [];
+  for (let index = 0; index + 2 <= trimmed.length; index += 1) {
+    const window = trimmed.slice(index, index + 2);
+    if ([...window].some((char) => CJK_FILLER_CHARS.has(char))) continue;
+    windows.push(window);
+  }
+  return windows;
+}
+
+export function tokenizeCJK(text = '') {
+  const tokens = [];
+  for (const run of String(text).match(CJK_RUN) ?? []) {
+    for (const token of cjkRunTokens(run)) {
+      if (CJK_STOPWORDS.has(token) || tokens.includes(token)) continue;
+      tokens.push(token);
+    }
+  }
+  return tokens;
+}
+
+function dedupeTokens(tokens) {
+  const seen = [];
+  for (const token of tokens) {
+    if (!seen.includes(token)) seen.push(token);
+  }
+  return seen;
+}
+
+function containsCJK(value) {
+  return CJK_CHAR.test(value);
+}
+
+function querySuffix(tier, token) {
+  const suffixes = TIER_QUERY_SUFFIX[tier];
+  return containsCJK(token) ? suffixes.cjk : suffixes.latin;
+}
+
+function planTokens(text) {
+  return dedupeTokens([...tokenizeBrief(text), ...tokenizeCJK(text)]);
+}
+
 function buildConstraints(tiers) {
   const constraints = [
     'Distill transferable principles; never copy layout, brand, copy, or assets.',
@@ -87,13 +141,13 @@ export function searchPlan({ channel, brief = '', tiers, intent } = {}) {
     designIntent?.visualDirection ?? '',
     ...(Array.isArray(designIntent?.principles) ? designIntent.principles : []),
   ].join(' ');
-  const tokens = tokenizeBrief(`${brief} ${extra}`);
+  const tokens = planTokens(`${brief} ${extra}`).slice(0, MAX_QUERY_TOKENS);
 
   const queries = [];
   for (const tier of requestedTiers) {
     for (const token of tokens) {
       if (queries.length >= MAX_QUERIES) break;
-      queries.push({ text: `${token} ${TIER_QUERY_SUFFIX[tier]}`, tier, purpose });
+      queries.push({ text: `${token} ${querySuffix(tier, token)}`, tier, purpose });
     }
   }
 

@@ -185,3 +185,18 @@ test('audit allows dotted non-host values and T1 sources', () => {
     assert.deepEqual(result.violations, []);
   }
 });
+
+test('a Chinese brief produces Chinese-suffixed queries', () => {
+  const plan = searchPlan({ channel: 'inspiration', brief: '温暖治愈的手工面包首页' });
+  assert.equal(plan.queries.length, 6);
+  assert.equal(plan.queries[0].text, '温暖 真实产品界面');
+  assert.equal(plan.queries[5].text, '治愈 设计灵感');
+});
+
+test('an English brief keeps its Latin tier suffixes', () => {
+  const plan = searchPlan({ channel: 'inspiration', brief: 'operations dashboard for support teams' });
+  assert.deepEqual(plan.queries.map((query) => query.text), [
+    'operations real product ui', 'dashboard real product ui', 'support real product ui',
+    'operations design inspiration', 'dashboard design inspiration', 'support design inspiration',
+  ]);
+});
