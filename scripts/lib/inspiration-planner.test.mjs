@@ -250,6 +250,15 @@ test('an inferred feeling stays soft with no binding constraint', () => {
   assert.ok(!plan.constraints.some((constraint) => /binding/.test(constraint)));
 });
 
+test('a malformed plan source falls back to inferred', () => {
+  const empty = searchPlan({ channel: 'inspiration', brief: 'bakery', intent: inferredIntent({ source: '' }) });
+  assert.equal(empty.emotion.source, 'inferred');
+  assert.equal(empty.emotion.binding, 'soft');
+  const unknown = searchPlan({ channel: 'inspiration', brief: 'bakery', intent: inferredIntent({ source: 'guessed' }) });
+  assert.equal(unknown.emotion.source, 'inferred');
+  assert.equal(unknown.emotion.binding, 'soft');
+});
+
 test('the components channel carries emotion metadata but no emotion tokens', () => {
   const plan = searchPlan({ channel: 'components', brief: 'data table', emotion: '温暖治愈' });
   assert.equal(plan.emotion.binding, 'hard');

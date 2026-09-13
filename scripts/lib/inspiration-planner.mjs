@@ -160,8 +160,9 @@ export function searchPlan({ channel, brief = '', tiers, intent, emotion } = {})
   const flagEmotion = nonEmptyString(emotion) ? emotion.trim() : '';
   const planEmotion = firstNonEmpty(emotionalIntent?.userPhrase, emotionalIntent?.goal);
   const emotionText = flagEmotion || planEmotion;
+  const rawSource = firstNonEmpty(emotionalIntent?.source);
   const emotionSource = emotionText
-    ? (flagEmotion ? 'user-provided' : (emotionalIntent?.source ?? 'inferred'))
+    ? (flagEmotion ? 'user-provided' : (['user-provided', 'inferred'].includes(rawSource) ? rawSource : 'inferred'))
     : null;
   const binding = emotionSource === 'user-provided' ? 'hard' : (emotionSource ? 'soft' : null);
 
