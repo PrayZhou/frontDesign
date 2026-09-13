@@ -165,7 +165,7 @@ export function searchPlan({ channel, brief = '', tiers, intent, emotion } = {})
     : null;
   const binding = emotionSource === 'user-provided' ? 'hard' : (emotionSource ? 'soft' : null);
 
-  const emotionTokens = channel === 'inspiration' ? tokenizeCJK(emotionText) : [];
+  const emotionTokens = channel === 'inspiration' ? planTokens(emotionText) : [];
   const subjectTokens = planTokens(`${brief} ${extra}`);
   const tokens = emotionTokens.length
     ? dedupeTokens([

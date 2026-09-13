@@ -223,6 +223,14 @@ test('a stated feeling leads the plan without dropping the brief subject', () =>
   assert.ok(plan.constraints.some((constraint) => /binding/.test(constraint)));
 });
 
+test('a Latin stated feeling also seeds the queries', () => {
+  const plan = searchPlan({ channel: 'inspiration', brief: 'bakery homepage', emotion: 'warm inviting' });
+  assert.equal(plan.emotion.source, 'user-provided');
+  assert.equal(plan.emotion.binding, 'hard');
+  assert.equal(plan.queries[0].text, 'warm real product ui');
+  assert.ok(plan.queries.some((query) => query.text.startsWith('bakery ')));
+});
+
 test('the emotion flag outranks the plan emotional intent', () => {
   const plan = searchPlan({
     channel: 'inspiration',
