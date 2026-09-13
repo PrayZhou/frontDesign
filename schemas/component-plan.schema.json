@@ -204,6 +204,8 @@
       "properties": {
         "goal": { "type": "string", "minLength": 1 },
         "rationale": { "type": "string", "minLength": 1 },
+        "source": { "enum": ["user-provided", "inferred"] },
+        "userPhrase": { "type": "string", "minLength": 1 },
         "carriers": {
           "type": "object",
           "minProperties": 1,

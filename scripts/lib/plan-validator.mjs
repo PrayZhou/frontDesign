@@ -29,6 +29,7 @@ const identifierAliases = new Map([
 ]);
 const emotionalCarrierLayers = new Set(['visual', 'content', 'interaction', 'structure', 'brand']);
 const emotionalRoles = new Set(['focal', 'supporting', 'neutral', 'transition']);
+const emotionalSources = new Set(['user-provided', 'inferred']);
 const genericEmotionalTerms = new Set([
   '高级', '高级感', '现代', '现代感', '漂亮', '好看', '有质感', '质感', '令人惊艳', '惊艳',
   'premium', 'modern', 'beautiful', 'stunning', 'clean', 'sleek',
@@ -233,6 +234,22 @@ function validateEmotionalIntent(designIntent, errors, warnings) {
       'designIntent.emotionalIntent must be an object.',
     ));
     return;
+  }
+
+  if (intent.source !== undefined && !emotionalSources.has(intent.source)) {
+    errors.push(issue(
+      'invalid-emotional-source',
+      '/designIntent/emotionalIntent/source',
+      `emotionalIntent.source must be one of: ${[...emotionalSources].join(', ')}.`,
+    ));
+  }
+
+  if (intent.source === 'user-provided' && !isNonEmptyString(intent.userPhrase)) {
+    warnings.push(issue(
+      'emotional-user-phrase-missing',
+      '/designIntent/emotionalIntent/userPhrase',
+      'A user-stated feeling should keep the user\'s own words in emotionalIntent.userPhrase.',
+    ));
   }
 
   if (!isNonEmptyString(intent.goal)) {
