@@ -133,6 +133,29 @@ test('an unmatched T1 URL falls back to the tier allowed use', () => {
   assert.doesNotMatch(constraints, /transferable-principle/);
 });
 
+test('an unregistered host is noted and a registered host is not', () => {
+  const records = normalizeCaptured({
+    references: [
+      {
+        url: 'https://www.zarla.com/inspiration/bakery',
+        publisher: 'Zarla',
+        tier: 'T3',
+        claim: 'Roundup describes a hero built from one craft-action photograph.',
+        capturedAt: '2026-09-13',
+      },
+      {
+        url: 'https://dribbble.com/shots/1',
+        publisher: 'Dribbble',
+        tier: 'T3',
+        claim: 'One dominant task above the fold.',
+        capturedAt: '2026-09-13',
+      },
+    ],
+  });
+  assert.match(records[0].notes, /not in the tier registry/i);
+  assert.doesNotMatch(records[1].notes, /not in the tier registry/i);
+});
+
 import { auditPlan } from './inspiration-planner.mjs';
 
 const region = (source, component) => ({

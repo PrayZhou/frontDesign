@@ -28,6 +28,18 @@ never become a visual-quality authority before its rendered behavior is inspecte
 | T2 — real products / official design-system cases | Real product sites and public design-system docs, Figma Community official publications, Mobbin | Serve as design evidence that informs Style Directions | Copying layout, brand, copy, or assets |
 | T3 — inspiration aggregators | Dribbble, Behance, Awwwards, Godly, Land-book, Refero, Layers | Distill transferable principles only | Copying visuals; becoming a selection candidate |
 
+### Aggregators and roundups
+
+When a search result is an aggregator or roundup page that describes other real sites:
+
+- Prefer retrieving the described **real product** directly and capture that as **T2 design
+  evidence**.
+- If that retrieval fails or is blocked, keep the roundup itself as **T3** and record it
+  explicitly as a **second-hand** source: transferable principles only, and the `claim` must
+  attribute the observation to the site it describes rather than presenting it as
+  first-hand.
+- Never treat the roundup page's own page design as the inspiration subject.
+
 ## Protocol
 
 Run `plan → search → capture → normalize → synthesize`.
@@ -38,10 +50,21 @@ Run `plan → search → capture → normalize → synthesize`.
    node .agents/skills/component-driven-frontend/scripts/inspiration-search.mjs --channel <inspiration|components> --brief '<text>' [--intent <plan.json>] --json
    ```
 
-   Treat the plan as a starting point, not a fixed script.
+   Treat the plan as a starting point, not a fixed script. The plan's `targets` are
+   preferred destinations, not an exhaustive list: a source that surfaces from a legitimate
+   search but is absent from the list is still usable, classified by its own nature (see
+   [Aggregators and roundups](#aggregators-and-roundups)) and never silently promoted.
+
+   The tier registry covers representative sources only. When a captured host is not in it,
+   `--normalize` applies the declared tier's default allowed use and marks the record as
+   coming from an unregistered host.
 
 2. **Search.** Perform the actual search with the runtime's web tools. Search only the tiers
-   the plan selected. A search that was not executed is not evidence.
+   the plan selected. A search that was not executed is not evidence. The generated
+   `queries` are seed strings, not the search to run: before searching, rewrite each around
+   the **subject noun** of the brief (for a bakery brief, `bakery`, not `independent real
+   product ui`). In a real run the literal `<adjective> real product ui` queries returned
+   nothing useful, while the subject noun returned the only useful results.
 
 3. **Capture.** For each reference, record URL, publisher, retrieval time, license note, and
    one narrow claim. Reuse the seven protocol rules in [research ingestion](research-ingestion.md).

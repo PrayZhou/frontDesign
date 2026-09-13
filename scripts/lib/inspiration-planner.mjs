@@ -169,6 +169,7 @@ function normalizeReference(reference, index) {
   const notes = [];
   if (nonEmptyString(reference.license)) notes.push(`license: ${reference.license.trim()}`);
   if (tier === 'T2' || tier === 'T3') notes.push('reference only — do not copy layout, brand, copy, or assets');
+  if (!matched) notes.push('host not in the tier registry — tier default policy applied');
   if (notes.length) record.notes = notes.join('; ');
 
   return record;
