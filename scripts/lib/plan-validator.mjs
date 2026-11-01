@@ -1,3 +1,5 @@
+import { LEVELS, contrastRatio, parseColor, resolveColorReference } from './contrast.mjs';
+
 const requiredDesignIntentFields = ['product', 'audience', 'coreTask', 'visualDirection', 'density'];
 const validDensities = new Set(['compact', 'comfortable', 'spacious']);
 const canonicalCapabilities = new Set([
@@ -32,7 +34,9 @@ const emotionalRoles = new Set(['focal', 'supporting', 'neutral', 'transition'])
 const emotionalSources = new Set(['user-provided', 'inferred']);
 const genericEmotionalTerms = new Set([
   '高级', '高级感', '现代', '现代感', '漂亮', '好看', '有质感', '质感', '令人惊艳', '惊艳',
+  '简约', '简洁', '精致', '大气',
   'premium', 'modern', 'beautiful', 'stunning', 'clean', 'sleek',
+  'minimal', 'minimalist', 'elegant', 'polished', 'simple',
 ]);
 
 const isNonEmptyString = (value) => typeof value === 'string' && value.trim().length > 0;
@@ -134,7 +138,13 @@ function validateStyleDirections(designIntent, errors, warnings) {
         errors.push(issue('visual-language-source-mismatch', '/designIntent/visualLanguage/sourceDirectionId', 'visualLanguage.sourceDirectionId must match selectedStyleDirection.'));
       }
       for (const section of styleProfileSections) {
-        if (!isRecord(language[section])) warnings.push(issue('visual-language-profile-incomplete', `/designIntent/visualLanguage/${section}`, `visualLanguage should include ${section}.`));
+        if (!isRecord(language[section])) {
+          errors.push(issue(
+            'visual-language-profile-required',
+            `/designIntent/visualLanguage/${section}`,
+            `visualLanguage requires a non-empty ${section} section.`,
+          ));
+        }
       }
     }
   }
@@ -344,12 +354,11 @@ function validateEmotionalIntent(designIntent, errors, warnings) {
 function validateSystem(value, field, errors, { allowNull = false } = {}) {
   if (allowNull && value === null) return;
   if (isNonEmptyString(value)) return;
-  if (Array.isArray(value) && value.length === 1 && isNonEmptyString(value[0])) return;
 
   errors.push(issue(
-    Array.isArray(value) && value.length > 1 ? `multiple-${field}s` : `invalid-${field}`,
+    `invalid-${field}`,
     `/${field}`,
-    `${field} must be ${allowNull ? 'null, ' : ''}a string, or a single-element array.`,
+    `${field} must be ${allowNull ? 'null or ' : ''}a non-empty string.`,
   ));
 }
 
@@ -376,6 +385,261 @@ function validateSelectionSource(source, path, foundation, enhancer, errors) {
   }
 }
 
+const knownEnhancerRegistries = new Map([
+  ['magicui', '@magicui'],
+  ['aceternity', '@aceternity'],
+]);
+
+function validateProjectConsistency(document, project, foundation, enhancer, errors, warnings) {
+  const detected = [...new Set(
+    (Array.isArray(project.designSystems) ? project.designSystems : [])
+      .map((value) => normalizeIdentifier(value))
+      .filter(Boolean),
+  )];
+
+  if (foundation) {
+    if (detected.length === 0) {
+      warnings.push(issue(
+        'foundation-unverified',
+        '/foundation',
+        `Foundation ${document.foundation} could not be verified from the inspected project; confirm it before relying on project primitives.`,
+      ));
+    } else if (!detected.includes(foundation)) {
+      errors.push(issue(
+        'foundation-not-in-project',
+        '/foundation',
+        `Foundation ${document.foundation} is not detected in the project (detected: ${detected.join(', ')}). Keep the existing foundation, or record an authorized migration before implementing.`,
+      ));
+    }
+  }
+
+  if (enhancer && knownEnhancerRegistries.has(enhancer)) {
+    const namespace = knownEnhancerRegistries.get(enhancer);
+    const registries = Array.isArray(project?.shadcn?.registries) ? project.shadcn.registries : [];
+    if (!registries.includes(namespace)) {
+      warnings.push(issue(
+        'enhancer-registry-not-configured',
+        '/enhancer',
+        `The ${namespace} registry is not configured in components.json; ${document.enhancer} components stay unverified until it is.`,
+      ));
+    }
+  }
+
+  const dependencies = Array.isArray(document.dependencies) ? document.dependencies : [];
+  if (dependencies.length === 0) return;
+
+  if (project.hasPackageJson !== true) {
+    warnings.push(issue(
+      'dependency-unverified',
+      '/dependencies',
+      'Dependencies could not be checked because the project has no readable package.json.',
+    ));
+    return;
+  }
+
+  const installed = new Set(Array.isArray(project.dependencies) ? project.dependencies : []);
+  dependencies.forEach((dependency, index) => {
+    if (!isRecord(dependency) || !isNonEmptyString(dependency.name) || typeof dependency.new !== 'boolean') return;
+    const name = dependency.name.trim();
+    if (dependency.new === false && !installed.has(name)) {
+      errors.push(issue(
+        'dependency-not-installed',
+        `/dependencies/${index}/name`,
+        `Dependency ${name} is marked as installed but does not appear in the project's package.json.`,
+      ));
+    }
+    if (dependency.new === true && installed.has(name)) {
+      warnings.push(issue(
+        'dependency-marked-new-but-installed',
+        `/dependencies/${index}/new`,
+        `Dependency ${name} is already installed; mark new: false so the dependency budget stays accurate.`,
+      ));
+    }
+  });
+}
+
+const interactionStates = new Set(['hover', 'focus', 'pressed', 'active', 'selected', 'disabled']);
+const statefulCapabilities = new Set(['data', 'async', 'interactive', 'forms', 'controls', 'overlay']);
+const pageActionCapabilities = new Set(['marketing', 'interactive', 'forms', 'controls', 'overlay']);
+const responsiveTransformationKeywords = [
+  'stack', 'column', 'grid', 'reflow', 'collapse', 'drawer', 'sheet', 'scroll', 'wrap',
+  'priority', 'overflow', 'truncate', 'disclosure', 'accordion', 'carousel', 'swipe',
+  'sticky', 'pinned', 'dialog', 'hidden', 'split', 'inline', 'becomes',
+  '单列', '堆叠', '折叠', '抽屉', '滚动', '换行', '隐藏', '优先级', '网格', '弹层', '横滑',
+];
+
+// A responsive note that names no transformation ("fits on mobile") is not a decision.
+function looksVagueResponsive(value) {
+  if (!isNonEmptyString(value)) return false;
+  const text = value.toLowerCase();
+  if (!responsiveTransformationKeywords.some((keyword) => text.includes(keyword))) return true;
+  if (/[\u3400-\u4dbf\u4e00-\u9fff]/.test(value)) return false;
+  return text.split(/\s+/).filter(Boolean).length < 3;
+}
+
+// Contrast is a design decision, not a rendered surprise: a declared pair that misses its
+// target fails the plan before any implementation exists.
+function validateContrastPairs(designIntent, project, errors, warnings) {
+  const level = designIntent.contrastLevel ?? 'AA';
+  if (designIntent.contrastLevel !== undefined && level !== 'AA' && level !== 'AAA') {
+    errors.push(issue('invalid-contrast-level', '/designIntent/contrastLevel', 'designIntent.contrastLevel must be AA or AAA.'));
+    return;
+  }
+
+  const pairs = designIntent.contrastPairs;
+  if (pairs === undefined) {
+    if (designIntent.tokens !== undefined) {
+      warnings.push(issue(
+        'contrast-pairs-missing',
+        '/designIntent/contrastPairs',
+        'Declare the color pairs this page must verify, so contrast is decided before implementation.',
+      ));
+    }
+    return;
+  }
+
+  if (!Array.isArray(pairs) || pairs.length === 0) {
+    errors.push(issue('invalid-contrast-pairs', '/designIntent/contrastPairs', 'contrastPairs must be a non-empty array.'));
+    return;
+  }
+
+  const variables = Array.isArray(project?.designTokens?.variables) ? project.designTokens.variables : [];
+  const seen = new Set();
+
+  pairs.forEach((pair, index) => {
+    const path = `/designIntent/contrastPairs/${index}`;
+    if (!isRecord(pair)) {
+      errors.push(issue('invalid-contrast-pair', path, 'Each contrast pair must be an object.'));
+      return;
+    }
+    for (const field of ['foreground', 'background']) {
+      if (!isNonEmptyString(pair[field])) {
+        errors.push(issue('contrast-pair-field-required', `${path}/${field}`, `contrastPairs[].${field} is required.`));
+      }
+    }
+    const kind = pair.kind ?? 'text';
+    if (kind !== 'text' && kind !== 'large' && kind !== 'ui') {
+      errors.push(issue('invalid-contrast-kind', `${path}/kind`, 'contrastPairs[].kind must be text, large, or ui.'));
+      return;
+    }
+    if (!isNonEmptyString(pair.foreground) || !isNonEmptyString(pair.background)) return;
+
+    const key = `${pair.foreground}|${pair.background}|${kind}`;
+    if (seen.has(key)) warnings.push(issue('duplicate-contrast-pair', path, 'Duplicate contrast pair.'));
+    seen.add(key);
+
+    const foreground = resolveColorReference(pair.foreground, variables);
+    const background = resolveColorReference(pair.background, variables);
+    if (!foreground.value || !background.value) {
+      const missing = [
+        foreground.value ? null : `${pair.foreground} (${foreground.reason})`,
+        background.value ? null : `${pair.background} (${background.reason})`,
+      ].filter(Boolean).join(', ');
+      if (variables.length === 0) {
+        warnings.push(issue('contrast-unverified', path, `Could not resolve ${missing} without project tokens; pass --root to verify.`));
+      } else {
+        errors.push(issue('contrast-token-not-found', path, `Could not resolve ${missing} from the project's theme tokens.`));
+      }
+      return;
+    }
+
+    try {
+      const ratio = contrastRatio(parseColor(foreground.value), parseColor(background.value));
+      const required = LEVELS[level][kind];
+      if (ratio + 1e-9 < required) {
+        errors.push(issue(
+          'contrast-below-target',
+          path,
+          `${pair.foreground} on ${pair.background} is ${ratio.toFixed(2)}:1, below the ${required}:1 ${level} ${kind} target.`,
+        ));
+      }
+    } catch (error) {
+      errors.push(issue('contrast-unparseable', path, `Could not evaluate contrast: ${error.message}`));
+    }
+  });
+}
+
+// Craft checks answer one question: would a senior designer accept this page as finished?
+// They stay warnings so a plan remains valid, while --strict still blocks them.
+function validateCraft(document, errors, warnings) {
+  const designIntent = isRecord(document.designIntent) ? document.designIntent : null;
+  if (!designIntent) return;
+
+  const principles = Array.isArray(designIntent.principles) ? designIntent.principles : [];
+  if (principles.length > 0 && principles.length < 3) {
+    warnings.push(issue('principles-too-few', '/designIntent/principles', 'Prefer 3–5 testable principles; one line rarely constrains a page.'));
+  } else if (principles.length > 5) {
+    warnings.push(issue('principles-too-many', '/designIntent/principles', 'More than five principles stops being a hierarchy; keep 3–5.'));
+  }
+
+  if (designIntent.primaryAction !== undefined && !isNonEmptyString(designIntent.primaryAction)) {
+    errors.push(issue('invalid-primary-action', '/designIntent/primaryAction', 'designIntent.primaryAction must be a non-empty string when present.'));
+  }
+
+  if (designIntent.successCriteria === undefined) {
+    warnings.push(issue('success-criteria-missing', '/designIntent/successCriteria', 'Name the observable outcomes this page must produce; rendered QA answers them one by one.'));
+  } else if (!isNonEmptyStringArray(designIntent.successCriteria)) {
+    errors.push(issue('invalid-success-criteria', '/designIntent/successCriteria', 'designIntent.successCriteria must be a non-empty array of non-empty strings.'));
+  }
+
+  if (isNonEmptyString(designIntent.visualDirection) && isGenericOnlyGoal(designIntent.visualDirection)) {
+    warnings.push(issue('generic-visual-direction', '/designIntent/visualDirection', 'visualDirection only names generic adjectives; state the shape, material, and interaction boundaries that carry it.'));
+  }
+
+  if (designIntent.tokens === undefined) {
+    warnings.push(issue('tokens-missing', '/designIntent/tokens', 'Record type scale, spacing rhythm, radius tiers, and elevation tiers so the page keeps one rhythm.'));
+  } else if (isRecord(designIntent.tokens) && !isNonEmptyString(designIntent.tokens.spacingRhythm)) {
+    warnings.push(issue('spacing-rhythm-missing', '/designIntent/tokens/spacingRhythm', 'Define the spacing rhythm (base unit and steps) the page reuses.'));
+  }
+
+  const directions = Array.isArray(designIntent.styleDirections) ? designIntent.styleDirections : [];
+  const selected = directions.find((direction) => isRecord(direction) && direction.id === designIntent.selectedStyleDirection);
+  if (isRecord(selected) && isRecord(selected.profile) && !isNonEmptyStringArray(selected.profile.effectBoundaries)) {
+    warnings.push(issue('effect-boundaries-missing', `/designIntent/styleDirections/${directions.indexOf(selected)}/profile/effectBoundaries`, 'The selected direction should state which effects are out of bounds, not only what it uses.'));
+  }
+
+  const regions = Array.isArray(document.regions) ? document.regions : [];
+  let focalCount = 0;
+  const pageCapabilities = new Set();
+
+  regions.forEach((region, index) => {
+    if (!isRecord(region)) return;
+    const regionPath = `/regions/${index}`;
+    const capabilities = isNonEmptyStringArray(region.capabilities) ? region.capabilities : [];
+    const states = isNonEmptyStringArray(region.states) ? region.states.map((state) => state.toLowerCase()) : [];
+    capabilities.forEach((capability) => pageCapabilities.add(capability));
+
+    if (region.emotionalRole === 'focal') focalCount += 1;
+
+    if (looksVagueResponsive(region.responsive)) {
+      warnings.push(issue('vague-responsive', `${regionPath}/responsive`, 'Describe the transformation — what becomes what at which width — instead of "make it responsive".'));
+    }
+
+    if (capabilities.some((capability) => statefulCapabilities.has(capability))
+      && states.length === 1 && states[0] === 'default') {
+      warnings.push(issue('single-default-state', `${regionPath}/states`, 'An operable or data-backed region needs more than a default state.'));
+    }
+
+    if (capabilities.includes('interactive')
+      && !states.some((state) => interactionStates.has(state))) {
+      warnings.push(issue('interactive-states-incomplete', `${regionPath}/states`, 'Interactive regions should name the interaction states they render: hover, focus, pressed, disabled.'));
+    }
+
+    if ((capabilities.includes('data') || capabilities.includes('async')) && !isRecord(region.contentModel)) {
+      warnings.push(issue('content-model-missing', `${regionPath}/contentModel`, 'Data-backed regions need a content model so realistic content drives the layout.'));
+    }
+  });
+
+  if (focalCount > 1) {
+    errors.push(issue('multiple-focal-regions', '/regions', `Only one region can be emotionalRole "focal"; found ${focalCount}. A page of focal regions has no focus.`));
+  }
+
+  if ([...pageCapabilities].some((capability) => pageActionCapabilities.has(capability))
+    && !isNonEmptyString(designIntent.primaryAction)) {
+    warnings.push(issue('primary-action-missing', '/designIntent/primaryAction', 'An operable or marketing page should name its single primary action.'));
+  }
+}
+
 export function validateComponentPlan(plan, { project } = {}) {
   const errors = [];
   const warnings = [];
@@ -384,6 +648,8 @@ export function validateComponentPlan(plan, { project } = {}) {
   if (document.version !== 1) {
     errors.push(issue('invalid-version', '/version', 'version must equal 1.'));
   }
+
+  validateCraft(document, errors, warnings);
 
   if (!isRecord(document.designIntent)) {
     errors.push(issue('invalid-design-intent', '/designIntent', 'designIntent must be an object.'));
@@ -403,6 +669,7 @@ export function validateComponentPlan(plan, { project } = {}) {
     validateStyleDirections(document.designIntent, errors, warnings);
     validateQualityMetadata(document.designIntent, errors, warnings);
     validateEmotionalIntent(document.designIntent, errors, warnings);
+    validateContrastPairs(document.designIntent, project, errors, warnings);
     if (!isNonEmptyStringArray(document.designIntent.principles)) {
       errors.push(issue(
         'design-intent-field-required',
@@ -443,6 +710,8 @@ export function validateComponentPlan(plan, { project } = {}) {
       }
     });
   }
+
+  if (project) validateProjectConsistency(document, project, foundation, enhancer, errors, warnings);
 
   if (!Array.isArray(document.regions)) {
     errors.push(issue('invalid-regions', '/regions', 'regions must be an array.'));

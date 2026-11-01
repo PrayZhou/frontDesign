@@ -4,7 +4,7 @@ Compose around user tasks and state boundaries. Preserve the selected foundation
 
 ## Separate responsibilities
 
-- **Shell:** Own global navigation, page width, persistent utilities, breakpoints, and route-level landmarks. Keep business content out of shell components.
+- **Shell:** Own global navigation, page width, persistent utilities, breakpoints, and route-level landmarks. Keep business content out of shell components. For a multi-page product, read [app shells](app-shells.md) before choosing the navigation model and page-header pattern.
 - **Content:** Own page hierarchy, data presentation, reading order, and empty/loading/error/success representation. Keep global navigation state out.
 - **Actions:** Place primary actions near the object or decision they affect. Separate destructive actions, confirmation, permissions, and pending/error feedback.
 

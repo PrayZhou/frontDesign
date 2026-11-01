@@ -1,6 +1,50 @@
 # Visual QA
 
-Visual QA is a rendered review against the approved Design Intent, selected Style Direction, content model, and responsive contract. A passing build is not visual approval.
+Visual QA is a rendered review against the approved Design Intent, selected Style Direction, content model, responsive contract, and declared success criteria. A passing build is not visual approval.
+
+Generate the checklist before looking at the page, so the review does not depend on recollection:
+
+```bash
+node .agents/skills/component-driven-frontend/scripts/visual-qa-plan.mjs --file <plan.json> --out qa.md
+```
+
+It expands every region, state, viewport, accessibility contract, data question, success criterion, contrast pair, and emotional question into checkboxes, then ends with the report template below.
+
+The repeatable half of the review can be automated without installing anything:
+
+```bash
+node .agents/skills/component-driven-frontend/scripts/visual-qa-plan.mjs --file <plan.json> --root . --emit playwright --out qa.spec.ts
+```
+
+The spec covers page-level and per-region overflow at every viewport, async-state placeholders, primary-action reachability, reduced motion, and an axe hook that stays commented until the project installs it. Region assertions expect `data-qa-region="<id>"` on each wrapper. It automates geometry and capture only; judgement stays in the checklist.
+
+## Contrast from tokens
+
+Decide contrast before looking at the page, so a failure is a finding rather than a surprise:
+
+```bash
+node .agents/skills/component-driven-frontend/scripts/check-contrast.mjs --root . --list
+node .agents/skills/component-driven-frontend/scripts/check-contrast.mjs --root . --pairs 'foreground:background,muted-foreground:background,primary:background' --json
+```
+
+`--list` derives the pairs the theme implies (`*-foreground` on its base surface, text on each surface, borders as UI boundaries). Text needs 4.5:1, large text and UI boundaries 3:1; `--level AAA` raises text to 7:1. The checker accepts hex, `rgb()`, `hsl()`, `oklab()`, and `oklch()`; resolve `color-mix()` to a concrete value first, and composite translucent surfaces over their real backdrop. A failing pair is a design finding to fix, not a threshold to lower.
+
+A border pair that fails 3:1 matters only when the border is the only thing defining a control's boundary; decorative hairlines are exempt from non-text contrast. Record that decision in the review instead of silently ignoring the row.
+
+## Visual regression baseline
+
+The generated spec writes `qa/*.png`. Freeze an approved review as the baseline, then compare every later run against it:
+
+```bash
+node .agents/skills/component-driven-frontend/scripts/visual-regression.mjs --baseline qa/baseline --current qa --update
+node .agents/skills/component-driven-frontend/scripts/visual-regression.mjs --baseline qa/baseline --current qa --threshold 0.02
+```
+
+- A capture with a different canvas size always fails; a pixel ratio alone would understate a reflow.
+- `--threshold` is the share of changed pixels ignored as noise (default 2%). `--tolerance` is the per-channel delta treated as noise (default 12 of 255).
+- Each failure reports a bounding box and a 64-bit difference hash, so "same layout, different color" reads differently from "different page".
+- `missing` means a baseline capture has no current counterpart; `new` means a capture has no baseline. Neither is silently accepted.
+- Run `--update` only after the review is approved. It copies, never deletes, and lists stale baseline files for you to remove deliberately.
 
 ## Required review matrix
 
@@ -54,15 +98,18 @@ A failed emotional question is a design finding, not an automatic build failure.
 
 ## Reporting
 
-Report engineering verification separately from rendered verification. Include the `Emotional checks` line only when the plan declares emotional intent; omit the line entirely otherwise, matching the emotional review above:
+Report engineering verification separately from rendered verification. Include the `Emotional checks` line only when the plan declares emotional intent; omit the line entirely otherwise, matching the emotional review above. Include `Success criteria` whenever the plan declares them, and answer each one:
 
 ```text
 Engineering checks: lint / typecheck / build
 Rendered checks: desktop / tablet / mobile / 320px / 200% zoom / keyboard / reduced motion
 Emotional checks: observations per declared question
+Success criteria: answered per declared criterion
 Visual QA status: complete | incomplete
 Open issues: ...
 ```
+
+An unanswered success criterion makes the review incomplete even when every viewport looks fine.
 
 If desktop and mobile output were not actually inspected, state exactly:
 

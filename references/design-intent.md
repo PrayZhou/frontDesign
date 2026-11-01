@@ -8,7 +8,7 @@ Use this hierarchy, highest first:
 
 1. Follow explicit user requirements and acceptance criteria.
 2. Follow brand rules, accessibility policy, content strategy, and supplied assets.
-3. Follow Figma, Code Connect, annotated screenshots, and approved reference designs.
+3. Follow Figma, Code Connect, annotated screenshots, and approved reference designs. When the brand arrives only as raster assets, extract the palette with `brand-colors.mjs` and treat a color with no matching token as a decision to record, not a token to invent.
 4. Preserve the project's tokens, type scale, theme, layout conventions, and current foundation.
 5. Use verified official component documentation and platform conventions.
 6. Introduce a local design decision only where higher evidence is silent; label it as an assumption.
@@ -33,6 +33,23 @@ Produce all six fields in a compact Design Intent:
 | `principles` | 3–5 testable rules covering hierarchy, responsiveness, and access |
 
 Examples set boundaries, not templates: “calm operational workspace; dense tables but generous section spacing; no decorative glow” or “editorial commerce; product imagery leads; restrained motion; no glass surfaces.” Do not copy their palettes or layouts.
+
+## Name the outcome
+
+Two fields make the page answerable to the brief instead of merely describable:
+
+| Field | Decide |
+|---|---|
+| `primaryAction` | The single action the page exists to produce. One per view; everything else is secondary. |
+| `successCriteria` | 1–3 observable outcomes a rendered review can answer without a judgment call. |
+
+Write criteria as checks, not aspirations: “the at-risk list is reachable in one scroll at 320px”
+is checkable; “looks professional” is not. The rendered review answers them one at a time, and
+`visual-qa-plan.mjs` turns them into checklist items.
+
+Before fixing type, spacing, surface, and motion values, read [premium craft](premium-craft.md)
+for the ranges that make a page read as considered rather than assembled. Those ranges are
+defaults to apply through the project's tokens, not a style to paste onto every page.
 
 ## Source the feeling
 
@@ -63,7 +80,7 @@ For `user-provided`, copy the user's words verbatim into `userPhrase`; the `goal
 
 When `emotionalIntent` is present, all five fields are required. Fill in only the carrier layers the project actually uses—at least one—rather than inventing copy for the rest. A carrier key outside those five layers is not rejected: the schema allows it and the validator reports `unknown-emotional-carrier` as a warning, so the plan stays valid while the unrecognized layer stays visible for review. Keep to the five named layers unless you can explain why a new one is needed.
 
-The goal must describe an experience, not a standalone adjective. The validator's generic-descriptor list is `高级`, `高级感`, `现代`, `现代感`, `漂亮`, `好看`, `有质感`, `质感`, `令人惊艳`, `惊艳`, `premium`, `modern`, `beautiful`, `stunning`, `clean`, `sleek`. It reports `generic-emotional-goal` as a warning, never an error, and the check is deliberately narrow: it splits the goal on whitespace and `,，、/|+&和与`, then warns only when the result is 1–3 tokens and every token is in that list. So `premium modern` warns, a full sentence that happens to contain `premium` does not, and delimiter-free Chinese such as `高级感的现代页面` does not warn either because it tokenizes as one unlisted string. A silent run is therefore not approval—the goal must still describe the experience it produces for that audience, whether or not the warning fires. Label an inferred goal `Assumption — user may override`.
+The goal must describe an experience, not a standalone adjective. The validator's generic-descriptor list is `高级`, `高级感`, `现代`, `现代感`, `漂亮`, `好看`, `有质感`, `质感`, `令人惊艳`, `惊艳`, `简约`, `简洁`, `精致`, `大气`, `premium`, `modern`, `beautiful`, `stunning`, `clean`, `sleek`, `minimal`, `minimalist`, `elegant`, `polished`, `simple`. It reports `generic-emotional-goal` as a warning, never an error, and the check is deliberately narrow: it splits the goal on whitespace and `,，、/|+&和与`, then warns only when the result is 1–3 tokens and every token is in that list. So `premium modern` warns, a full sentence that happens to contain `premium` does not, and delimiter-free Chinese such as `高级感的现代页面` does not warn either because it tokenizes as one unlisted string. A silent run is therefore not approval—the goal must still describe the experience it produces for that audience, whether or not the warning fires. Label an inferred goal `Assumption — user may override`.
 
 ```text
 Product: independent bakery homepage
@@ -78,8 +95,8 @@ An emotional goal is not a budget for decoration. It adds no foundation and no e
 
 ## Set visual rules
 
-- **Typography:** Keep the existing family unless brand evidence authorizes change. Define display/body/label roles, readable measures, and a limited weight range. Use size and spacing before decorative effects to establish hierarchy.
-- **Color:** Start from existing semantic tokens. Assign colors by purpose—surface, text, border, action, status—and verify contrast. Add a new accent only when it has a defined role.
+- **Typography:** Keep the existing family unless brand evidence authorizes change. Derive the scale once with `type-scale.mjs --body 16 --ratio 1.25`, then use only those steps: 13/17/21px one-offs are how a page loses rhythm. Define display/body/label roles, readable measures, and a limited weight range; use size and spacing before decorative effects to establish hierarchy.
+- **Color:** Start from existing semantic tokens. Assign colors by purpose—surface, text, border, action, status—and verify contrast with `check-contrast.mjs` rather than by eye. Record the pairs that must pass in `designIntent.contrastPairs` with a `contrastLevel`; the validator blocks a failing pair before implementation. Add a new accent only when it has a defined role.
 - **Spacing, shape, and material:** Use the project's spacing and radius scales. Let content relationships determine gaps. Define surface depth and fallback behavior before using translucency or blur. Do not wrap every region in a large rounded container. Read [visual language](visual-language.md) when shape or material affects the direction.
 - **Interaction and motion:** State purpose, trigger, duration character, and reduced-motion behavior. Prefer state continuity and input feedback. A core product demonstration needs more than a whole-section fade. Read [visual language](visual-language.md) for the interaction inventory.
 - **Responsive/accessibility:** Identify reading order, collapse behavior, touch targets, focus visibility, semantics, zoom/reflow, and reduced motion before implementation.

@@ -190,7 +190,38 @@ test('a Chinese brief produces Chinese-suffixed queries', () => {
   const plan = searchPlan({ channel: 'inspiration', brief: '温暖治愈的手工面包首页' });
   assert.equal(plan.queries.length, 6);
   assert.equal(plan.queries[0].text, '温暖 真实产品界面');
-  assert.equal(plan.queries[5].text, '治愈 设计灵感');
+  assert.equal(plan.queries[5].text, '手工 设计灵感');
+});
+
+test('long CJK runs are segmented without crossing bigrams', () => {
+  const plan = searchPlan({ channel: 'inspiration', brief: '温暖治愈的手工面包首页' });
+  const tokens = plan.queries.map((query) => query.text.split(' ')[0]);
+  assert.deepEqual([...new Set(tokens)], ['温暖', '治愈', '手工']);
+  assert.ok(!tokens.includes('暖治'), 'a crossing bigram must never become a query');
+});
+
+test('audit flags subdomains, ports, and embedded URLs', () => {
+  const flagged = [
+    'www.dribbble.com',
+    'https://www.awwwards.com/x',
+    'behance.net:443',
+    'https://dribbble.com:8443/shots/1',
+    'source: awwwards.com',
+  ];
+  for (const source of flagged) {
+    const result = auditPlan({ regions: [region(source, 'hero-card')] });
+    assert.equal(result.valid, false, `expected ${source} to be flagged`);
+    assert.equal(result.violations[0].code, 'inspiration-source-as-candidate');
+  }
+});
+
+test('captured references accept every documented evidence type', () => {
+  for (const type of ['user-brief', 'figma', 'local-doc', 'screenshot', 'official-doc', 'observed-pattern']) {
+    const [record] = normalizeCaptured({
+      references: [{ url: 'https://example.test/a', publisher: 'P', tier: 'T2', claim: 'c', type }],
+    });
+    assert.equal(record.type, type);
+  }
 });
 
 test('an English brief keeps its Latin tier suffixes', () => {

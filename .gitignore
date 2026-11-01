@@ -1,0 +1,9 @@
+node_modules/
+.next/
+dist/
+build/
+out/
+coverage/
+.work-view/
+.DS_Store
+*.log

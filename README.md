@@ -41,8 +41,11 @@ The skill:
 - searches for inspiration without copying unverifiable references;
 - verifies project components and source APIs before recommending them;
 - limits the implementation to one foundation and at most one visual enhancer;
+- plans multi-page shells from the real route map;
 - produces and validates a machine-readable component plan;
-- carries the plan into implementation and rendered desktop/mobile QA.
+- carries the plan into implementation and rendered desktop/mobile QA;
+- checks contrast, visual regressions, localization expansion, and build budgets before a
+  page is called done.
 
 ## When to use it
 
@@ -113,6 +116,7 @@ a component or API exists.
 │   └── science.png                   # Science visual reference
 ├── references/                       # Detailed domain guidance
 ├── schemas/                          # Machine-readable plan contracts
+├── examples/                         # Canonical plan, validated in tests
 └── scripts/                          # Inspection, search, and validation tools
 ```
 
@@ -142,6 +146,63 @@ considering the work complete.
    of visual quality.
 6. A page is not complete until its rendered desktop and mobile states have been
    inspected.
+
+## Checks
+
+```bash
+node --test
+```
+
+Runs the planner, validator, CLI, and component-query suites. Every script is plain
+ESM with no dependencies to install. Validating a plan against a project also checks
+the declared foundation, enhancer, installed dependencies, and every declared contrast
+pair:
+
+```bash
+node scripts/validate-component-plan.mjs --file plan.json --root . --strict
+```
+
+Derive the type scale from one ratio so sizes stop being per-component guesses:
+
+```bash
+node scripts/type-scale.mjs --body 16 --ratio 1.25 --format css
+```
+
+The approved plan also generates the rendered-review checklist and an optional Playwright
+spec, so visual QA is worked through instead of recalled:
+
+```bash
+node scripts/visual-qa-plan.mjs --file plan.json --root . --out qa.md
+node scripts/visual-qa-plan.mjs --file plan.json --root . --emit playwright --out qa.spec.ts
+node scripts/check-contrast.mjs --root . --pairs 'foreground:background,muted-foreground:background'
+```
+
+`check-contrast` reads the project's theme tokens (hex, `rgb()`, `hsl()`, `oklab()`, `oklch()`)
+and fails below 4.5:1 for text and 3:1 for large text and UI boundaries.
+
+The close-out checks run in one pass when the inputs exist; anything missing is reported as
+skipped rather than passed:
+
+```bash
+node scripts/verify.mjs --plan plan.json --root .
+```
+
+The individual checks stay available:
+
+```bash
+node scripts/inspect-shell.mjs --root . --json
+node scripts/brand-colors.mjs --root . --json
+node scripts/plan-diff.mjs --before old-plan.json --after plan.json --fail-on foundation,regions
+node scripts/visual-regression.mjs --baseline qa/baseline --current qa --update
+node scripts/i18n-stress.mjs --dir locales --baseline en
+node scripts/bundle-budget.mjs --root . --plan plan.json
+```
+
+`inspect-shell` inventories routes, layout chains, route groups, and segment states so a
+multi-page shell starts from the real map. `visual-regression` decodes PNG captures with no
+dependencies, fails on a changed canvas size, and reports a bounding box plus a difference hash;
+`i18n-stress` checks key parity, placeholder drift, and text expansion against a baseline locale;
+`bundle-budget` measures per-route first-load JS and shipped CSS against the plan's budget.
 
 ## License
 

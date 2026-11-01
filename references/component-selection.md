@@ -73,6 +73,8 @@ Every local query candidate has this stable shape:
 
 `relevanceScore` is a discovery-only lexical rank: exact normalized name +50, matching name token +15, capability token +12, description token +4, existing-project bonus +30, resolved active-foundation bonus +20, new dependency −2, and selected unresolved-cost warnings −5. A candidate must first match at least one normalized name, capability, or description token; project/foundation bonuses cannot make an unrelated result eligible. The value is deliberately not capped at 100 and must never be reported as final fit.
 
+Discovery emits only the canonical capability tokens listed above, so a candidate's `capabilities` can be carried into a region without triggering `unknown-capability`. Project candidates also report the packages their file imports, which is what makes the new-dependency penalty real: only packages missing from `package.json` count against a candidate. Capability inference matches whole words, so `discard` is not a `card` and `metadata` is not `data`.
+
 ## Assess final fit and reject
 
 After discovery, assess final fit separately using project consistency (30), capability/state fit (25), accessibility (15), Design Intent fit (15), responsive behavior (10), and dependency/client cost (5), for a distinct 100-point rubric. Record this assessment in the decision rationale, not in `relevanceScore`. Use final fit to order review, not to override rejection rules or judgment.
@@ -94,7 +96,19 @@ Use this exact top-level shape:
     "coreTask": "...",
     "visualDirection": "...",
     "density": "compact|comfortable|spacious",
-    "principles": ["..."]
+    "principles": ["..."],
+    "primaryAction": "the single action this page produces",
+    "successCriteria": ["observable outcome a rendered review can answer"],
+    "tokens": {
+      "spacingRhythm": "8px base with 1.5 steps",
+      "radiusTiers": ["control", "panel"],
+      "elevationTiers": ["raised", "overlay"]
+    },
+    "contrastLevel": "AA",
+    "contrastPairs": [
+      { "foreground": "foreground", "background": "background", "kind": "text" },
+      { "foreground": "border", "background": "background", "kind": "ui" }
+    ]
   },
   "foundation": "existing-system",
   "enhancer": null,
@@ -123,6 +137,8 @@ Use this exact top-level shape:
 `selection.source` must be a project, foundation, enhancer, registry, or `custom` source. A T2 or T3 visual-inspiration source is never valid here; run `inspiration-search.mjs --audit-plan <plan.json>` to catch a leak. See [inspiration search](inspiration-search.md).
 
 All six Design Intent fields are required, including non-empty `coreTask`. Use a string for `foundation`; use a string or `null` for `enhancer`. Every dependency object requires `name`, `reason`, and boolean `new`. Every region requires `id`, `need`, non-empty `capabilities`, non-empty `selection.source`, non-empty `selection.component`, `reason`, non-empty `states`, `responsive`, and `accessibility`. Selection sources may be `project`, `foundation`, `custom`, the declared foundation, or the declared enhancer; the `enhancer` alias is valid only when an enhancer is declared. A known foundation source that differs from `foundation`, or a known visual-enhancer source that differs from `enhancer`, is an error. Regions carrying `interactive` require non-empty `keyboard`, `focus`, and `semantics`. Regions carrying `data` or `async` must include all applicable `loading`, `empty`, `error`, and `success` states; strict validation treats omissions as blocking warnings.
+
+`primaryAction`, `successCriteria`, `tokens`, and `contrastPairs` are optional to the schema but warned when missing, so `--strict` blocks their absence. `contrastPairs` entries accept literal colors, `var(--token)`, or bare token names; the validator resolves names against the project's `designTokens` when `--root` is given and blocks any pair below the `contrastLevel` target. Discovery also reports craft warnings that `--strict` blocks: a generic-only `visualDirection`, more than one `emotionalRole: "focal"` region (an error), a `responsive` note that names no transformation, a stateful region with only `default`, an interactive region without hover/focus/pressed/disabled states, a data-backed region without `contentModel`, and a selected direction without `effectBoundaries`.
 
 For `selection.source: "custom"`, also add:
 

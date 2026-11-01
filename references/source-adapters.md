@@ -13,6 +13,10 @@ node .agents/skills/component-driven-frontend/scripts/query-components.mjs --sou
 
 Trust discovered component paths, dependencies, design systems, `components.json`, registries, and theme files only within the reported confidence and warnings. `globals.css` alone is not Tailwind evidence; require a Tailwind dependency/config or a Tailwind directive/import. Application frameworks take priority over build-tool signals, so a Remix + Vite project reports Remix as primary while retaining Vite in `framework.detected`. When several foundations are detected, `activeFoundation` remains `null` with a conflict warning; inspect the relevant page and imports before resolving it. If no repository exists, mark all project facts unknown and do not fix a stack or component name.
 
+Discovery scans `components`, `src/components`, `app/components`, and `src/app/components`, plus any project-relative directory named by `components.json` `aliases.components` or `aliases.ui`. A layout outside those conventions stays undiscovered; point `--root` at the package that owns it instead of assuming the component is missing. `project.dependencies` lists every dependency, dev-dependency, and peer-dependency name, and a project candidate's `dependencies` are read from its import specifiers, so only packages the project does not already install reduce a discovery score. `project.designTokens` carries the CSS custom properties found in theme blocks (`:root`, `html`, `.dark`, `[data-theme]`, `@theme`) plus declared `font-family` values, so a plan can reuse real token names and values instead of inventing them.
+
+The validator trusts a plan more once it is given a root: `--root` (or `--verify-sources`) also checks that the declared `foundation` is detected in the project, that a declared enhancer's registry is configured, and that every dependency marked `new: false` actually appears in `package.json`. Without a root those claims are unverified, not correct.
+
 ## Query shadcn-compatible registries
 
 The wrapper does not execute network commands. It returns `status: "requires-command"`, an empty candidate list, warnings, and a shell-quoted `nextActions` command.

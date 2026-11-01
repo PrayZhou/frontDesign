@@ -48,7 +48,7 @@ function normalizeTiers(tiers) {
   return cleaned.sort((left, right) => TIER_ORDER.indexOf(left) - TIER_ORDER.indexOf(right));
 }
 
-export function tokenizeBrief(brief = '') {
+function tokenizeBrief(brief = '') {
   const raw = String(brief)
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
     .toLowerCase()
@@ -75,16 +75,23 @@ function cjkRunTokens(run) {
   }
   if (trimmed.length < 2) return [];
   if (trimmed.length <= 6) return [trimmed];
+  // Non-overlapping two-character windows: overlapping ones produce crossing bigrams
+  // (`温暖治愈` -> `暖治`) that used to reach the search engine as real queries.
   const windows = [];
-  for (let index = 0; index + 2 <= trimmed.length; index += 1) {
+  let index = 0;
+  while (index + 2 <= trimmed.length) {
     const window = trimmed.slice(index, index + 2);
-    if ([...window].some((char) => CJK_FILLER_CHARS.has(char))) continue;
+    if ([...window].some((char) => CJK_FILLER_CHARS.has(char))) {
+      index += 1;
+      continue;
+    }
     windows.push(window);
+    index += 2;
   }
   return windows;
 }
 
-export function tokenizeCJK(text = '') {
+function tokenizeCJK(text = '') {
   const tokens = [];
   for (const run of String(text).match(CJK_RUN) ?? []) {
     for (const token of cjkRunTokens(run)) {
@@ -204,7 +211,10 @@ export function searchPlan({ channel, brief = '', tiers, intent, emotion } = {})
 }
 
 const TIER_EVIDENCE_TYPE = { T1: 'official-doc', T2: 'observed-pattern', T3: 'observed-pattern' };
-const VALID_EVIDENCE_TYPES = new Set(['official-doc', 'observed-pattern', 'screenshot']);
+// Mirrors the evidence types in references/research-ingestion.md.
+const VALID_EVIDENCE_TYPES = new Set([
+  'official-doc', 'observed-pattern', 'screenshot', 'user-brief', 'figma', 'local-doc',
+]);
 const VALID_CONFIDENCE = new Set(['high', 'medium', 'low']);
 const VALID_FRESHNESS = new Set(['current', 'needs-review', 'historical']);
 
@@ -231,7 +241,7 @@ function normalizeReference(reference, index) {
   }
   const type = reference.type ?? TIER_EVIDENCE_TYPE[tier];
   if (!VALID_EVIDENCE_TYPES.has(type)) {
-    throw new Error(`captured.references[${index}].type must be official-doc, observed-pattern, or screenshot.`);
+    throw new Error(`captured.references[${index}].type must be one of: ${[...VALID_EVIDENCE_TYPES].join(', ')}.`);
   }
   const freshness = reference.freshness ?? 'current';
   if (!VALID_FRESHNESS.has(freshness)) {
@@ -278,8 +288,17 @@ export function normalizeCaptured(captured) {
 
 const RESTRICTED_SITES = TIER_SITES.filter((entry) => entry.tier !== 'T1');
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function hostOf(value) {
-  return value.replace(/^https?:\/\//, '').split('/')[0].toLowerCase();
+  return String(value)
+    .replace(/^[a-z][a-z0-9+.-]*:\/\//i, '')
+    .split(/[/?#]/)[0]
+    .replace(/:\d+$/, '')
+    .replace(/\.$/, '')
+    .toLowerCase();
 }
 
 function matchesRestrictedSite(value, entry) {
@@ -287,7 +306,11 @@ function matchesRestrictedSite(value, entry) {
   if (value === alias) return true;
 
   const host = hostOf(entry.site);
-  if (hostOf(value) === host) return true;
+  const valueHost = hostOf(value);
+  // Exact host, subdomain (`www.dribbble.com`), and any URL that embeds the host
+  // (`https://dribbble.com/shots/1`) all count as referencing the restricted site.
+  if (valueHost === host || valueHost.endsWith(`.${host}`)) return true;
+  if (new RegExp(`(?:^|[^a-z0-9.-])${escapeRegExp(host)}(?![a-z0-9-])`).test(value)) return true;
 
   const brand = host.split('.')[0];
   return !value.includes('.') && !value.includes('/') && value === brand;

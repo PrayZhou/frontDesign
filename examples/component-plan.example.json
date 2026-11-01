@@ -1,0 +1,173 @@
+{
+  "version": 1,
+  "designIntent": {
+    "product": "B2B support operations dashboard",
+    "audience": "Support leads working a queue on a laptop for hours",
+    "coreTask": "Decide which at-risk account to open next",
+    "visualDirection": "Calm information-forward workspace; dense tables, generous section spacing, no decorative glow",
+    "density": "comfortable",
+    "principles": [
+      "One analytical question dominates the first viewport",
+      "Every state keeps the same geometry",
+      "Contrast is decided from tokens, not from a screenshot"
+    ],
+    "primaryAction": "Open the at-risk account list",
+    "successCriteria": [
+      "A support lead can name the top at-risk account within ten seconds",
+      "The at-risk list is reachable in one scroll at 320px"
+    ],
+    "styleDirections": [
+      {
+        "id": "quiet-editorial",
+        "name": "Quiet editorial",
+        "description": "Type-led hierarchy, few containers, opaque surfaces",
+        "profile": {
+          "shape": { "radius": "two tiers: control 6px, panel 10px" },
+          "material": { "surface": "opaque canvas and panels, one hairline border" },
+          "interaction": { "hover": "row tint, no lift" },
+          "effectBoundaries": ["no glass", "no glow", "no gradient hero"]
+        },
+        "strengths": ["scannable for long sessions", "survives reduced motion unchanged"],
+        "tradeoffs": ["less immediately expressive than a modular grid"],
+        "emotionalEffect": "quiet confidence that the numbers are current"
+      },
+      {
+        "id": "modular-bento",
+        "name": "Modular Bento",
+        "description": "Grid of elevated modules with stronger surfaces",
+        "profile": {
+          "shape": { "radius": "three tiers: 8, 12, 16" },
+          "material": { "surface": "elevated cards with layered shadows" },
+          "interaction": { "hover": "1px lift" }
+        },
+        "strengths": ["clear module boundaries"],
+        "tradeoffs": [
+          "risks card-grid default and decorative depth",
+          "conflicts with the user's stated calm feeling"
+        ],
+        "emotionalEffect": "energetic and denser, which fights the stated calm"
+      }
+    ],
+    "selectedStyleDirection": "quiet-editorial",
+    "visualLanguage": {
+      "sourceDirectionId": "quiet-editorial",
+      "shape": { "radius": "two tiers: control 6px, panel 10px" },
+      "material": { "surface": "opaque canvas and panels, one hairline border" },
+      "interaction": { "hover": "row tint, no lift" }
+    },
+    "emotionalIntent": {
+      "source": "user-provided",
+      "userPhrase": "平静、可信",
+      "goal": "calm trust that the numbers are current enough to act on",
+      "rationale": "Support leads make escalation decisions from this screen all day",
+      "carriers": {
+        "visual": "opaque surfaces, one accent, tabular numerals",
+        "content": "timestamps and time ranges beside every metric"
+      },
+      "avoid": ["glow", "gradient hero", "fake urgency counters"],
+      "qaQuestions": [
+        "Is one analytical question dominant above the fold?",
+        "Does the calm survive reduced motion and opaque fallbacks?"
+      ]
+    },
+    "tokens": {
+      "typography": { "display": "32/1.15", "body": "16/1.6", "label": "13/1.35" },
+      "colorRoles": ["canvas", "surface", "text", "muted text", "border", "action", "danger"],
+      "spacingRhythm": "8px base with 1.5 steps; 64px between sections",
+      "radiusTiers": ["control", "panel"],
+      "elevationTiers": ["raised", "overlay"]
+    },
+    "contrastLevel": "AA",
+    "contrastPairs": [
+      { "foreground": "#0a0a0a", "background": "#ffffff", "kind": "text" },
+      { "foreground": "#737373", "background": "#ffffff", "kind": "text" },
+      { "foreground": "#1d4ed8", "background": "#ffffff", "kind": "ui", "note": "focus ring and control boundary" }
+    ],
+    "responsiveContract": {
+      "desktop": "sidebar plus two-column analysis",
+      "tablet": "sidebar collapses to icons, analysis stacks",
+      "mobile": "drawer navigation, single column",
+      "transformations": [
+        "table keeps priority columns and moves the rest into row disclosure",
+        "metrics stack into one column"
+      ],
+      "zoomAndReflow": "200% zoom reflows to one column with no clipping"
+    },
+    "performanceBudget": {
+      "maxNewDependencies": 0,
+      "maxFirstLoadKb": 250,
+      "maxCssKb": 80,
+      "motionPolicy": "transform and opacity only; 120/180/240ms tokens",
+      "fontPolicy": "reuse the project's variable font with a size-adjust fallback"
+    },
+    "visualQaTargets": {
+      "viewports": ["1440x900", "834x1112", "390x844", "320"],
+      "states": ["loading", "empty", "error", "success"],
+      "reducedMotion": true,
+      "comparisonSource": "qa.md checklist plus the generated Playwright spec"
+    },
+    "evidence": [
+      {
+        "id": "brand-01",
+        "type": "official-doc",
+        "source": "Product design system documentation",
+        "claim": "Semantic color roles already cover surface, text, border, and status.",
+        "confidence": "high",
+        "capturedAt": "2026-10-30",
+        "freshness": "current"
+      }
+    ]
+  },
+  "foundation": "shadcn",
+  "enhancer": null,
+  "dependencies": [],
+  "regions": [
+    {
+      "id": "summary",
+      "need": "Understand the queue's pressure at a glance",
+      "capabilities": ["data", "metrics", "async"],
+      "selection": { "source": "foundation", "component": "metric-card" },
+      "reason": "The foundation metric card already exposes label, value, delta, and timestamp slots",
+      "states": ["loading", "empty", "error", "success"],
+      "responsive": "Metrics stack into a single column below 768px, keeping label and value together",
+      "accessibility": { "semantics": "A labelled group with one heading per metric" },
+      "contentModel": {
+        "units": ["open escalations", "median response time", "accounts at risk"],
+        "realisticExample": "Acme Ltd · 3 open escalations · 12h median response",
+        "states": ["loading", "empty", "error", "success"],
+        "emptyStatePurpose": "Say when no accounts are at risk rather than showing zeroes",
+        "errorRecovery": "Keep the last known values with a timestamp and offer refresh"
+      },
+      "emotionalRole": "supporting",
+      "emotionalContribution": "Steady calm: numbers update without the page jumping"
+    },
+    {
+      "id": "results",
+      "need": "Compare accounts and open the next one",
+      "capabilities": ["data", "table", "async", "interactive"],
+      "selection": { "source": "foundation", "component": "data-table" },
+      "reason": "The foundation table supplies sorting, selection, and keyboard row movement, styled by project tokens",
+      "states": ["loading", "empty", "error", "success", "hover", "focus", "pressed", "disabled"],
+      "responsive": "Priority columns stay, remaining columns move into row disclosure below 768px",
+      "accessibility": {
+        "keyboard": "Arrow keys move rows, Enter opens the account, sort headers are buttons",
+        "focus": "Focus-visible ring on rows, headers, and the toolbar",
+        "semantics": "role=grid with row and column headers and a caption naming the question"
+      },
+      "contentModel": {
+        "units": ["account", "risk reason", "owner", "last activity"],
+        "realisticExample": "Northwind · payment failed twice · Dana W. · 2h ago",
+        "states": ["loading", "empty", "error", "success"],
+        "emptyStatePurpose": "Distinguish no accounts at risk from filters that match nothing",
+        "errorRecovery": "Keep filters and scroll, offer retry, keep the header visible"
+      },
+      "dataViz": {
+        "question": "Which accounts are at risk?",
+        "markType": "table",
+        "textAlternative": "A sortable table of accounts with risk reason, owner, and last activity"
+      },
+      "emotionalRole": "focal",
+      "emotionalContribution": "The one region that must feel calm and trustworthy first"
+    }
+  ]
+}

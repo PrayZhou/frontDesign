@@ -46,7 +46,7 @@ export async function readJsonFile(filePath, { optional = false } = {}) {
   }
 }
 
-export async function detectPackageManager(root, packageJson = {}) {
+async function detectPackageManager(root, packageJson = {}) {
   if (typeof packageJson.packageManager === 'string') {
     return packageJson.packageManager.split('@')[0];
   }
@@ -68,7 +68,7 @@ export async function detectPackageManager(root, packageJson = {}) {
   return null;
 }
 
-export function detectFramework(packageJson = {}) {
+function detectFramework(packageJson = {}) {
   const names = packageNames(packageJson);
   const detected = [];
   for (const [name, dependencies] of [
@@ -83,7 +83,7 @@ export function detectFramework(packageJson = {}) {
   return { primary: detected[0] ?? null, detected };
 }
 
-export function detectStyling(packageJson = {}, fileNames = [], stylesheetContents = []) {
+function detectStyling(packageJson = {}, fileNames = [], stylesheetContents = []) {
   const names = packageNames(packageJson);
   const files = fileNames.map((fileName) => fileName.toLowerCase());
   const contents = Array.isArray(stylesheetContents)
@@ -114,7 +114,7 @@ export function detectStyling(packageJson = {}, fileNames = [], stylesheetConten
   return styling;
 }
 
-export function detectDesignSystems(packageJson = {}, componentsJson = null) {
+function detectDesignSystems(packageJson = {}, componentsJson = null) {
   const names = packageNames(packageJson);
   const systems = [];
   if (componentsJson) systems.push('shadcn');
@@ -149,7 +149,7 @@ async function walkFiles(root, relative = '') {
   return files;
 }
 
-export async function discoverComponents(root, candidateDirectories) {
+async function discoverComponents(root, candidateDirectories) {
   const components = [];
   for (const directory of candidateDirectories) {
     const absoluteDirectory = path.join(root, directory);
@@ -183,6 +183,69 @@ function librariesFrom(packageJson = {}) {
   if (hasPackage(names, 'framer-motion', 'motion')) libraries.push('motion');
   if (hasPackage(names, 'sonner')) libraries.push('sonner');
   return libraries;
+}
+
+// `components.json` aliases point at the real component directories, which are not always
+// one of the conventional four. Only project-relative, non-escaping paths are accepted.
+function componentDirectoriesFromConfig(componentsJson) {
+  const aliases = componentsJson?.aliases;
+  if (!aliases || typeof aliases !== 'object' || Array.isArray(aliases)) return [];
+  const directories = [];
+  for (const key of ['components', 'ui']) {
+    const value = aliases[key];
+    if (typeof value !== 'string') continue;
+    const cleaned = value
+      .trim()
+      .replace(/^[~@]\//, '')
+      .replace(/^\.\//, '')
+      .replace(/^\/+/, '')
+      .replace(/\/+$/, '');
+    if (!cleaned || cleaned.includes('..') || path.isAbsolute(cleaned)) continue;
+    if (!directories.includes(cleaned)) directories.push(cleaned);
+  }
+  return directories;
+}
+
+function coversDirectory(parent, candidate) {
+  return parent === candidate || candidate.startsWith(`${parent}${path.sep}`) || candidate.startsWith(`${parent}/`);
+}
+
+const CSS_THEME_BLOCK = /(?::root|html|\[data-theme[^\]]*\]|\.dark|@theme(?:\s+[a-z-]+)?)\s*\{([^}]*)\}/gi;
+const CSS_VARIABLE = /(--[a-z0-9-]+)\s*:\s*([^;{}]+);/gi;
+const CSS_FONT_FAMILY = /font-family\s*:\s*([^;{}]+);/gi;
+const MAX_CSS_VARIABLES = 200;
+
+// "Use the project's tokens" is only actionable when the agent can see them. This reads
+// theme blocks (including `@theme` and `.dark`) and returns the real custom properties.
+export function collectDesignTokens(stylesheetContents = []) {
+  const variables = new Map();
+  const fontFamilies = new Set();
+
+  for (const content of Array.isArray(stylesheetContents) ? stylesheetContents : []) {
+    if (typeof content !== 'string') continue;
+    for (const block of content.matchAll(CSS_THEME_BLOCK)) {
+      for (const declaration of block[1].matchAll(CSS_VARIABLE)) {
+        const name = declaration[1].trim();
+        const value = declaration[2].trim().replace(/\s+/g, ' ');
+        if (name && value && !variables.has(name)) variables.set(name, value);
+      }
+    }
+    for (const match of content.matchAll(CSS_FONT_FAMILY)) {
+      const value = match[1].trim().replace(/\s+/g, ' ');
+      if (value) fontFamilies.add(value);
+    }
+  }
+
+  const all = [...variables].map(([name, value]) => ({ name, value }));
+  return {
+    variables: all.slice(0, MAX_CSS_VARIABLES),
+    truncated: all.length > MAX_CSS_VARIABLES,
+    radius: all.filter((token) => /radius/i.test(token.name)).slice(0, 10),
+    colorRoles: all
+      .filter((token) => /(color|background|foreground|primary|secondary|accent|muted|destructive|border|ring|card|popover|input|chart)/i.test(token.name))
+      .slice(0, 60),
+    fontFamilies: [...fontFamilies].slice(0, 10),
+  };
 }
 
 export async function inspectProject(root) {
@@ -219,6 +282,11 @@ export async function inspectProject(root) {
   }
 
   const candidateDirectories = ['components', 'src/components', 'app/components', 'src/app/components'];
+  for (const directory of componentDirectoriesFromConfig(componentsJson)) {
+    if (candidateDirectories.some((candidate) => coversDirectory(candidate, directory))) continue;
+    if (candidateDirectories.some((candidate) => coversDirectory(directory, candidate))) continue;
+    candidateDirectories.push(directory);
+  }
   const componentDirectories = [];
   for (const directory of candidateDirectories) {
     try {
@@ -264,6 +332,9 @@ export async function inspectProject(root) {
     designSystems,
     activeFoundation,
     libraries: librariesFrom(packageJson),
+    hasPackageJson: Object.keys(packageJson).length > 0,
+    dependencies: [...packageNames(packageJson)].sort(),
+    designTokens: collectDesignTokens(stylesheetContents),
     shadcn: { configPath: componentsJson ? 'components.json' : null, registries },
     componentDirectories,
     components,

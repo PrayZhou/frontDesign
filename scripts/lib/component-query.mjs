@@ -1,18 +1,23 @@
+import { promises as fs } from 'node:fs';
+import { builtinModules } from 'node:module';
 import path from 'node:path';
 import { inspectProject, readJsonFile } from './project-inspector.mjs';
 
-// These keywords deliberately describe user-facing capabilities rather than a registry's vendor-specific types.
+// Keys are the canonical plan tokens, so discovery output stays valid in a region.
 const CAPABILITY_KEYWORDS = {
-  navigation: ['navigation', 'nav', 'menu', 'breadcrumb', 'sidebar', 'tabs', 'pagination'],
-  forms: ['form', 'input', 'select', 'checkbox', 'radio', 'switch', 'combobox', 'datepicker'],
-  data: ['data', 'list', 'card', 'avatar', 'badge', 'stat', 'timeline', 'gallery'],
+  navigation: ['navigation', 'navbar', 'nav', 'menu', 'breadcrumb', 'sidebar', 'tabs', 'pagination'],
+  forms: ['form', 'input', 'select', 'checkbox', 'radio', 'combobox', 'datepicker', 'field'],
+  controls: ['control', 'button', 'toggle', 'slider', 'stepper', 'segmented', 'rating', 'switch'],
+  data: ['data', 'list', 'card', 'avatar', 'badge', 'timeline', 'gallery', 'description'],
   overlay: ['dialog', 'modal', 'popover', 'drawer', 'sheet', 'tooltip', 'overlay'],
   feedback: ['toast', 'alert', 'notification', 'feedback', 'progress', 'skeleton', 'spinner', 'empty'],
   layout: ['layout', 'container', 'grid', 'separator', 'resizable', 'scroll', 'accordion'],
-  animation: ['animation', 'animated', 'motion', 'transition', 'marquee', 'beam', 'sparkle'],
   marketing: ['hero', 'landing', 'pricing', 'testimonial', 'feature', 'cta', 'logo'],
+  table: ['table', 'datatable', 'tabular'],
   chart: ['chart', 'graph', 'rechart', 'plot', 'analytics'],
-  table: ['table', 'datatable', 'data-table', 'tabular'],
+  metrics: ['metric', 'kpi', 'stat', 'scorecard'],
+  interactive: ['interactive', 'animation', 'animated', 'motion', 'transition', 'marquee', 'beam', 'sparkle', 'command', 'drag', 'sort', 'filter'],
+  async: ['async', 'streaming', 'suspense', 'infinite', 'lazy'],
 };
 
 const ONLINE_COMMANDS = {
@@ -29,7 +34,12 @@ const TRUSTED_REGISTRY_NAMESPACES = new Map([
 ]);
 const UNTRUSTED_REGISTRY_WARNING = 'Install command unavailable because this Registry file has no trusted namespace.';
 
-export function tokenize(text = '') {
+const NODE_BUILTINS = new Set(builtinModules);
+const IMPORT_SPECIFIER_PATTERN = /(?:from\s*|import\s*\(\s*|require\s*\(\s*|import\s+)['"]([^'"]+)['"]/g;
+const MAX_HYDRATED_COMPONENTS = 200;
+const MAX_COMPONENT_FILE_BYTES = 512 * 1024;
+
+function tokenize(text = '') {
   return String(text)
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
     .toLowerCase()
@@ -59,6 +69,15 @@ function asArray(registry) {
   return registry && typeof registry === 'object' ? [registry] : [];
 }
 
+const CAPABILITY_TOKEN_INDEX = Object.fromEntries(
+  Object.entries(CAPABILITY_KEYWORDS).map(([capability, keywords]) => [
+    capability,
+    new Set(keywords.map(normalizedCapabilityToken)),
+  ]),
+);
+
+// Word-boundary matching: `discard` no longer implies a `card` capability and `metadata`
+// no longer implies `data`. Plural forms still match through normalizedCapabilityToken.
 function inferCapabilities(item) {
   const searchableText = [
     item.name,
@@ -67,9 +86,40 @@ function inferCapabilities(item) {
     ...stringArray(item.dependencies),
     ...stringArray(item.registryDependencies),
   ].join(' ').toLowerCase();
-  return Object.entries(CAPABILITY_KEYWORDS)
-    .filter(([, keywords]) => keywords.some((keyword) => searchableText.includes(keyword)))
+  const tokens = new Set(tokenize(searchableText).map(normalizedCapabilityToken));
+  return Object.entries(CAPABILITY_TOKEN_INDEX)
+    .filter(([, keywords]) => [...keywords].some((keyword) => tokens.has(keyword)))
     .map(([capability]) => capability);
+}
+
+export function extractDependencies(source) {
+  const names = new Set();
+  if (typeof source !== 'string') return [];
+  for (const match of source.matchAll(IMPORT_SPECIFIER_PATTERN)) {
+    const specifier = match[1].trim();
+    if (!specifier || specifier.startsWith('.') || specifier.startsWith('/') || specifier.startsWith('node:')) continue;
+    const segments = specifier.split('/');
+    const name = specifier.startsWith('@')
+      ? (segments.length >= 2 ? `${segments[0]}/${segments[1]}` : specifier)
+      : segments[0];
+    if (!name || NODE_BUILTINS.has(name)) continue;
+    names.add(name);
+  }
+  return [...names].sort();
+}
+
+async function readComponentDependencies(absolutePath) {
+  try {
+    const stats = await fs.stat(absolutePath);
+    if (!stats.isFile() || stats.size > MAX_COMPONENT_FILE_BYTES) return [];
+  } catch {
+    return [];
+  }
+  try {
+    return extractDependencies(await fs.readFile(absolutePath, 'utf8'));
+  } catch {
+    return [];
+  }
 }
 
 function candidateWarnings(item) {
@@ -110,7 +160,7 @@ export function normalizeRegistry(registry, source = 'shadcn') {
     });
 }
 
-export function candidateMatchesQuery(candidate, query) {
+function candidateMatchesQuery(candidate, query) {
   const queryTokens = tokenize(query);
   if (queryTokens.length === 0) return false;
 
@@ -128,7 +178,7 @@ export function candidateMatchesQuery(candidate, query) {
   ));
 }
 
-export function scoreCandidate(candidate, query, context = {}) {
+function scoreCandidate(candidate, query, context = {}) {
   const queryTokens = tokenize(query);
   const name = normalizedName(candidate.name);
   const nameTokens = new Set(tokenize(candidate.name));
@@ -179,20 +229,30 @@ export async function queryRegistryFile(filePath, query, source = 'shadcn') {
 
 export async function queryProject(root, query) {
   const project = await inspectProject(root);
-  const candidates = sortCandidates(project.components.map((component) => ({
-    id: `project/${normalizedName(component.name)}`,
-    name: normalizedName(component.name),
-    source: 'project',
-    description: component.path,
-    capabilities: inferCapabilities({ ...component, description: component.path }),
-    dependencies: [],
-    registryDependencies: [],
-    installCommand: null,
-    docsUrl: null,
-    relevanceScore: 0,
-    warnings: [],
-  })), query, project);
-  return result({ source: 'project', query, status: 'ok', candidates, warnings: project.warnings });
+  const inspected = project.components.slice(0, MAX_HYDRATED_COMPONENTS);
+  const candidates = await Promise.all(inspected.map(async (component) => {
+    const name = normalizedName(component.name);
+    const dependencies = await readComponentDependencies(path.resolve(project.root, component.path));
+    return {
+      id: `project/${name}`,
+      name,
+      source: 'project',
+      description: component.path,
+      capabilities: inferCapabilities({ name, description: component.path, type: 'project', dependencies }),
+      dependencies,
+      registryDependencies: [],
+      installCommand: null,
+      docsUrl: null,
+      relevanceScore: 0,
+      warnings: [],
+    };
+  }));
+
+  const warnings = [...project.warnings];
+  if (project.components.length > inspected.length) {
+    warnings.push(`Only the first ${MAX_HYDRATED_COMPONENTS} discovered components were inspected; narrow the project root for a complete list.`);
+  }
+  return result({ source: 'project', query, status: 'ok', candidates: sortCandidates(candidates, query, project), warnings });
 }
 
 export async function buildOnlineSourceResult(source, query, root = '.') {

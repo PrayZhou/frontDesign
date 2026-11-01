@@ -88,7 +88,7 @@ Before implementation, check the plan for tier violations:
 node .agents/skills/component-driven-frontend/scripts/inspiration-search.mjs --audit-plan <plan.json> --json
 ```
 
-A violation means a visual-inspiration source leaked into `region.selection`.
+A violation means a visual-inspiration source leaked into `region.selection`. The matcher recognises the tier alias (`t2`, `T3`), the bare brand (`dribbble`), the host (`dribbble.com`), subdomains (`www.dribbble.com`), hosts with a port, and URLs that embed a restricted host, so a copied gallery link cannot pass as a component source.
 
 ## Verification
 

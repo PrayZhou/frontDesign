@@ -16,6 +16,8 @@
         "visualDirection": { "type": "string", "minLength": 1 },
         "density": { "enum": ["compact", "comfortable", "spacious"] },
         "principles": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "primaryAction": { "type": "string", "minLength": 1 },
+        "successCriteria": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
         "styleDirections": {
           "type": "array",
           "minItems": 2,
@@ -26,6 +28,21 @@
         "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } },
         "contentModel": { "$ref": "#/$defs/contentModel" },
         "tokens": { "$ref": "#/$defs/tokens" },
+        "contrastLevel": { "enum": ["AA", "AAA"] },
+        "contrastPairs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["foreground", "background"],
+            "properties": {
+              "foreground": { "type": "string", "minLength": 1 },
+              "background": { "type": "string", "minLength": 1 },
+              "kind": { "enum": ["text", "large", "ui"] },
+              "note": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
         "responsiveContract": { "$ref": "#/$defs/responsiveContract" },
         "performanceBudget": { "$ref": "#/$defs/performanceBudget" },
         "visualQaTargets": { "$ref": "#/$defs/visualQaTargets" },
@@ -184,6 +201,8 @@
       "type": "object",
       "properties": {
         "maxNewDependencies": { "type": "integer", "minimum": 0 },
+        "maxFirstLoadKb": { "type": "number", "minimum": 0 },
+        "maxCssKb": { "type": "number", "minimum": 0 },
         "avoidLargeAnimatedBlur": { "type": "boolean" },
         "motionPolicy": { "type": "string", "minLength": 1 },
         "fontPolicy": { "type": "string", "minLength": 1 }

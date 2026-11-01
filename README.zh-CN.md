@@ -40,8 +40,10 @@
 - 在不复制不可验证参考的前提下搜索灵感；
 - 在推荐组件前验证项目内组件和外部来源 API；
 - 限制实现使用一个基础设计系统，最多配合一个视觉增强器；
+- 从真实路由图规划多页面壳层；
 - 生成并校验机器可读的组件方案；
-- 根据方案完成实现，并进行桌面端和移动端的渲染验收。
+- 根据方案完成实现，并进行桌面端和移动端的渲染验收；
+- 在宣布完成前检查对比度、视觉回归、多语言膨胀和构建体积。
 
 ## 适用场景
 
@@ -109,6 +111,7 @@
 │   └── science.png                   # Science 视觉参考
 ├── references/                       # 详细领域指导
 ├── schemas/                          # 机器可读的方案契约
+├── examples/                         # 规范示例方案（由测试保证可通过校验）
 └── scripts/                          # 检查、搜索和校验工具
 ```
 
@@ -134,6 +137,60 @@
 4. 组件名称必须在选用前完成验证。
 5. 内容真实性、响应式、可访问性和性能都属于视觉质量的一部分。
 6. 只有完成桌面端和移动端渲染检查后，页面才算完成。
+
+## 自检
+
+```bash
+node --test
+```
+
+运行计划器、校验器、CLI 和组件检索的测试套件。所有脚本都是零依赖的 ESM。
+带项目根目录校验计划时，还会同时检查声明的 foundation、enhancer、依赖安装状态，
+以及每一条声明的对比度配对：
+
+```bash
+node scripts/validate-component-plan.mjs --file plan.json --root . --strict
+```
+
+字号阶梯从一个比例统一推导，避免 13/17/21px 这种逐组件手写值：
+
+```bash
+node scripts/type-scale.mjs --body 16 --ratio 1.25 --format css
+```
+
+通过校验的方案可以直接生成渲染验收清单和可选的 Playwright 骨架，让视觉验收变成逐项核对，
+而不是凭记忆：
+
+```bash
+node scripts/visual-qa-plan.mjs --file plan.json --root . --out qa.md
+node scripts/visual-qa-plan.mjs --file plan.json --root . --emit playwright --out qa.spec.ts
+node scripts/check-contrast.mjs --root . --pairs 'foreground:background,muted-foreground:background'
+```
+
+`check-contrast` 直接读取项目主题 token（支持 hex、`rgb()`、`hsl()`、`oklab()`、`oklch()`），
+正文低于 4.5:1、大字与 UI 边界低于 3:1 时判为失败。
+
+收尾检查在输入齐备时一次跑完；缺失的输入会标为 skipped，而不是假装通过：
+
+```bash
+node scripts/verify.mjs --plan plan.json --root .
+```
+
+单项检查仍然可以单独运行：
+
+```bash
+node scripts/inspect-shell.mjs --root . --json
+node scripts/brand-colors.mjs --root . --json
+node scripts/plan-diff.mjs --before old-plan.json --after plan.json --fail-on foundation,regions
+node scripts/visual-regression.mjs --baseline qa/baseline --current qa --update
+node scripts/i18n-stress.mjs --dir locales --baseline en
+node scripts/bundle-budget.mjs --root . --plan plan.json
+```
+
+`inspect-shell` 输出路由、layout 链、route group 和分段状态，多页面壳层从真实路由图开始；
+`visual-regression` 零依赖解码 PNG 截图，画布尺寸变化一律判失败，并输出差异包围盒与差值哈希；
+`i18n-stress` 检查 key 完整性、占位符漂移和相对基线语言的文本膨胀；`bundle-budget` 按方案预算
+检查每条路由的首屏 JS 与 CSS 体积。
 
 ## License
 
