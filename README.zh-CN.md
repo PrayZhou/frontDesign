@@ -117,6 +117,8 @@
 
 ## 使用示例
 
+[可运行案例 · 客服运营 Dashboard](examples/support-dashboard/README.md) 展示同一方案在桌面和 320px 下的实拍效果，附键盘操作、axe 检查及一次窄屏溢出的复现与修复。页面可直接离线打开。
+
 ```text
 为运营团队构建一个响应式数据分析 Dashboard。
 先检查现有设计系统，提出两个视觉方向并选择一个，
@@ -170,11 +172,15 @@ node scripts/check-contrast.mjs --root . --pairs 'foreground:background,muted-fo
 `check-contrast` 直接读取项目主题 token（支持 hex、`rgb()`、`hsl()`、`oklab()`、`oklch()`），
 正文低于 4.5:1、大字与 UI 边界低于 3:1 时判为失败。
 
-收尾检查在输入齐备时一次跑完；缺失的输入会标为 skipped，而不是假装通过：
+本地运行 `node scripts/verify.mjs --plan plan.json --root .`，缺少输入的可选检查会标为跳过。在 CI 中先生成构建产物和当前截图，再按项目需要指定必检项。
 
 ```bash
-node scripts/verify.mjs --plan plan.json --root .
+node scripts/verify.mjs --plan plan.json --root . --require bundle,regression,i18n --json
 ```
+
+`--require` 可选 `plan`、`bundle`、`i18n`、`regression`，支持逗号分隔或重复传入。缺少必检输入或检查失败时退出码为 1，仅有警告时为 0。未知检查名、空名称或与 `--skip` 冲突时为 2。视觉回归列为必检后，每张新截图都需要对应基线。体积检查列为必检后，需要可测量的 JS 或 CSS，以及已检查路由所引用的资源文件。
+
+独立多语言命令和总验收共用目录读取逻辑。`en.json` 的键保留原名，`en/common.json` 中的 `save` 对应 `common.save`，`zh/admin/forms.json` 中的 `save` 对应 `admin.forms.save`。平铺和分目录格式可以共存，同一语言的两个文件定义相同键时，错误会给出键名和双方路径。
 
 单项检查仍然可以单独运行：
 

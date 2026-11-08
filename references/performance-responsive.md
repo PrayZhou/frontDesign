@@ -35,6 +35,8 @@ Text is layout. Before accepting a page that ships more than one locale, run:
 node .agents/skills/component-driven-frontend/scripts/i18n-stress.mjs --dir locales --baseline en
 ```
 
+Point `--dir` at the directory containing language files or language folders. Flat files such as `en.json` contribute root keys. Files such as `en/common.json` and `de/admin/forms.json` contribute `common.*` and `admin.forms.*` keys to their respective locales. The standalone checker, pseudo-localization, and the i18n check in `verify.mjs` use the same names. Duplicate flattened keys within a locale are input errors.
+
 It reports missing keys, placeholder drift, empty values, and per-key expansion against the
 baseline locale. Strings shorter than 12 characters are exempt from the ratio check, because
 translations legitimately expand ("Save" → "Speichern"). Placeholders are compared as sets:

@@ -119,3 +119,13 @@ test('the CLI exits 1 on errors and prints a pseudo locale', async () => {
     await fs.rm(dir, { recursive: true, force: true });
   }
 });
+
+test('catalog keys with prototype names survive flattening and require an own translation', () => {
+  const en = flattenMessages(JSON.parse('{"__proto__":"A","constructor":"B"}'));
+  const result = analyzeLocales({ en, zh: {} });
+  assert.deepEqual(result.issues.map(issue => issue.key).sort(), ['__proto__', 'constructor']);
+});
+
+test('ambiguous dotted keys within one file cannot overwrite each other', () => {
+  assert.throws(() => flattenMessages({ 'account.name': 'A', account: { name: 'B' } }), /account\.name/);
+});

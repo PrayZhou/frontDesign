@@ -122,6 +122,8 @@ a component or API exists.
 
 ## Example prompts
 
+[Runnable support dashboard](examples/support-dashboard/README.md) pairs the component plan with an offline page, desktop and 320px browser captures, and a reproducible reflow regression. Its Playwright suite exercises keyboard access and axe on the rendered page.
+
 ```text
 Build a responsive analytics dashboard for operations teams.
 Inspect the existing design system, propose two visual directions,
@@ -180,12 +182,15 @@ node scripts/check-contrast.mjs --root . --pairs 'foreground:background,muted-fo
 `check-contrast` reads the project's theme tokens (hex, `rgb()`, `hsl()`, `oklab()`, `oklch()`)
 and fails below 4.5:1 for text and 3:1 for large text and UI boundaries.
 
-The close-out checks run in one pass when the inputs exist; anything missing is reported as
-skipped rather than passed:
+Run the close-out checks locally with `node scripts/verify.mjs --plan plan.json --root .`. Missing optional inputs are reported as skipped. In a CI job, generate the build and captures first, then name the checks that must run.
 
 ```bash
-node scripts/verify.mjs --plan plan.json --root .
+node scripts/verify.mjs --plan plan.json --root . --require bundle,regression,i18n --json
 ```
+
+`--require` accepts `plan`, `bundle`, `i18n`, and `regression`. A missing required input or a failed check exits 1. Warnings allow exit 0. An unknown name or an overlap with `--skip` exits 2. Required regression checks also fail when a new capture lacks its own baseline. Required bundle checks need measurable JS or CSS and any JS/CSS files referenced by the inspected route entries.
+
+Both locale commands read flat catalogs (`en.json`) and language directories (`en/common.json`, `zh/admin/forms.json`). The relative filename supplies the namespace, so the last file’s `save` key is reported as `admin.forms.save`. Flat and nested catalogs can coexist. Files that define the same key in one locale produce an error identifying both paths.
 
 The individual checks stay available:
 

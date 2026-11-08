@@ -16,7 +16,9 @@ The repeatable half of the review can be automated without installing anything:
 node .agents/skills/component-driven-frontend/scripts/visual-qa-plan.mjs --file <plan.json> --root . --emit playwright --out qa.spec.ts
 ```
 
-The spec covers page-level and per-region overflow at every viewport, async-state placeholders, primary-action reachability, reduced motion, and an axe hook that stays commented until the project installs it. Region assertions expect `data-qa-region="<id>"` on each wrapper. It automates geometry and capture only; judgement stays in the checklist.
+At each viewport the spec checks document and region overflow, presses Tab until the primary action receives focus, and runs axe when the project has `@axe-core/playwright` installed. Set `designIntent.primaryAction` to the exact accessible name of one visible button or link on the route. An undeclared action and an absent axe package are reported as skipped. An unreachable declared action or an axe violation fails the test. Multiple routes with different actions need route-specific locators in the emitted spec. Region assertions expect `data-qa-region="<id>"` on each wrapper.
+
+The spec also captures reduced motion and leaves async-state geometry tests skipped until the project supplies fixtures. Use the checklist to review visual hierarchy, state feedback, and zoom. The [support dashboard case study](../examples/support-dashboard/README.md) includes runnable browser checks, failure controls, and desktop and 320px captures.
 
 ## Contrast from tokens
 

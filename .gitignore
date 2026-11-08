@@ -1,9 +1,27 @@
+# Dependencies and build outputs
 node_modules/
 .next/
 dist/
 build/
 out/
 coverage/
+
+# Local QA runs and Playwright reports
 .work-view/
+/qa.md
+/qa.spec.ts
+/qa/*
+!/qa/baseline/
+test-results/
+playwright-report/
+blob-report/
+playwright/.auth/
+
+# Local configuration and machine files
+.env
+.env.*
+!.env.example
+!.env.*.example
+!.env.template
 .DS_Store
 *.log

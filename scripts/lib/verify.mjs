@@ -1,28 +1,34 @@
-import { promises as fs } from 'node:fs';
+import { realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { budgetsFromPlan, inspectBundle } from './bundle-budget.mjs';
-import { listFiles } from './files.mjs';
-import { analyzeLocales, flattenMessages } from './i18n-stress.mjs';
+import { loadLocales } from './locale-files.mjs';
+import { analyzeLocales } from './i18n-stress.mjs';
 import { validateComponentPlan } from './plan-validator.mjs';
 import { inspectProject } from './project-inspector.mjs';
 import { compareCaptures } from './visual-regression.mjs';
 
-async function loadLocales(root, directory) {
-  const files = await listFiles(path.join(root, directory), { extensions: ['.json'] });
-  const locales = {};
-  const errors = [];
-  for (const file of files) {
-    try {
-      const parsed = JSON.parse(await fs.readFile(path.join(root, directory, file), 'utf8'));
-      locales[path.posix.basename(file, '.json')] = flattenMessages(parsed);
-    } catch (error) {
-      errors.push(`${file}: ${error.message}`);
+const checkIds = ['plan', 'bundle', 'i18n', 'regression'];
+
+function checkSet(option, ids) {
+  if (!Array.isArray(ids)) throw new Error(`--${option} expects a list of check names.`);
+  for (const id of ids) {
+    if (!checkIds.includes(id)) {
+      throw new Error(`Unknown --${option} value: ${JSON.stringify(id)}. Use ${checkIds.join(', ')}.`);
     }
   }
-  return { locales, errors };
+  return new Set(ids);
 }
 
-// One close-out command; absent inputs are skipped, never reported as passes.
+async function captureDirectory(root, directory) {
+  const absolute = path.resolve(root, directory);
+  try {
+    return await realpath(absolute);
+  } catch (error) {
+    if (error.code === 'ENOENT') return absolute;
+    throw error;
+  }
+}
+
 export async function verifyProject({
   plan,
   root = '.',
@@ -30,8 +36,18 @@ export async function verifyProject({
   baseline = 'qa/baseline',
   locales = 'locales',
   skip = [],
+  require: requiredIds = [],
 } = {}) {
-  const skipped = new Set(skip);
+  const skipped = checkSet('skip', skip);
+  const required = checkSet('require', requiredIds);
+  for (const id of required) {
+    if (skipped.has(id)) throw new Error(`Check "${id}" appears in both --require and --skip.`);
+  }
+  function missingInput(id, reason) {
+    return required.has(id)
+      ? { id, status: 'fail', code: 'required-input-missing', reason }
+      : { id, status: 'skipped', reason };
+  }
   const checks = [];
   const resolvedRoot = path.resolve(root);
 
@@ -49,8 +65,14 @@ export async function verifyProject({
 
   if (!skipped.has('bundle')) {
     const bundle = await inspectBundle({ root: resolvedRoot, budgets: budgetsFromPlan(plan) });
-    checks.push(bundle.source
-      ? {
+    if (!bundle.source) {
+      checks.push(missingInput('bundle', 'no production build output found'));
+    } else if (required.has('bundle') && bundle.missingAssets.length) {
+      checks.push(missingInput('bundle', `missing build assets: ${bundle.missingAssets.join(', ')}`));
+    } else if (bundle.totals.js.files + bundle.totals.css.files === 0) {
+      checks.push(missingInput('bundle', `no measurable JS or CSS in ${bundle.buildDirectory}`));
+    } else {
+      checks.push({
         id: 'bundle',
         status: bundle.violations.length ? 'fail' : 'pass',
         source: bundle.source,
@@ -58,18 +80,21 @@ export async function verifyProject({
         largestRouteKb: bundle.routes[0]?.jsKb ?? null,
         violations: bundle.violations,
         warnings: bundle.warnings,
-      }
-      : { id: 'bundle', status: 'skipped', reason: 'no production build output found' });
+      });
+    }
   }
 
   if (!skipped.has('i18n')) {
-    const { locales: messages, errors: parseErrors } = await loadLocales(resolvedRoot, locales);
-    if (Object.keys(messages).length === 0 && parseErrors.length === 0) {
-      checks.push({ id: 'i18n', status: 'skipped', reason: `no locale JSON under ${locales}` });
+    const { locales: messages, errors: parseErrors } = await loadLocales(path.resolve(resolvedRoot, locales));
+    const hasLocales = Object.keys(messages).length > 0;
+    const result = hasLocales
+      ? analyzeLocales(messages)
+      : { baseline: null, issues: [], summary: { errors: 0, warnings: 0 } };
+    if (!parseErrors.length && !hasLocales) {
+      checks.push(missingInput('i18n', `no locale JSON under ${locales}`));
+    } else if (required.has('i18n') && !parseErrors.length && !Object.keys(messages[result.baseline]).length) {
+      checks.push(missingInput('i18n', `baseline locale ${result.baseline} contains no message keys`));
     } else {
-      const result = Object.keys(messages).length
-        ? analyzeLocales(messages, {})
-        : { baseline: null, summary: { errors: 0, warnings: 0 }, issues: [] };
       checks.push({
         id: 'i18n',
         status: parseErrors.length || result.summary.errors
@@ -84,18 +109,24 @@ export async function verifyProject({
   }
 
   if (!skipped.has('regression')) {
-    const report = await compareCaptures({
-      baseline: path.join(resolvedRoot, baseline),
-      current: path.join(resolvedRoot, qa),
-    });
+    const [reference, current] = await Promise.all([
+      captureDirectory(resolvedRoot, baseline),
+      captureDirectory(resolvedRoot, qa),
+    ]);
+    if (required.has('regression') && reference === current) {
+      throw new Error('--require regression needs different directories for --qa and --baseline.');
+    }
+    const report = await compareCaptures({ baseline: reference, current });
     if (report.summary.total === 0) {
-      checks.push({ id: 'regression', status: 'skipped', reason: `no baseline captures in ${baseline}` });
+      checks.push(missingInput('regression', `no baseline captures in ${baseline}`));
     } else {
+      const failures = report.files.filter(file =>
+        file.status === 'fail' || file.status === 'missing' || (required.has('regression') && file.status === 'new'));
       checks.push({
         id: 'regression',
-        status: report.summary.failed > 0 || report.summary.missing > 0 ? 'fail' : 'pass',
+        status: failures.length ? 'fail' : 'pass',
         summary: report.summary,
-        failures: report.files.filter((file) => file.status === 'fail' || file.status === 'missing'),
+        failures,
       });
     }
   }

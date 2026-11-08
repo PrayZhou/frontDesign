@@ -1,15 +1,14 @@
 #!/usr/bin/env node
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
 import { parseArgs, printJson } from './lib/cli.mjs';
-import { analyzeLocales, flattenMessages, pseudoLocale } from './lib/i18n-stress.mjs';
-import { listFiles } from './lib/files.mjs';
+import { analyzeLocales, pseudoLocale } from './lib/i18n-stress.mjs';
+import { loadLocales } from './lib/locale-files.mjs';
 
 const help = `Usage:
   i18n-stress.mjs --dir locales [--baseline en] [--max-expansion 1.6] [--warn-expansion 1.3] [--pseudo] [--json]
 
   Checks missing keys, placeholder parity, empty values, and text expansion against a
-  baseline locale. --pseudo prints a pseudo-localized baseline map for injection.
+  baseline locale. Reads <locale>.json and <locale>/<namespace>.json (including subdirectories).
+  --pseudo prints a pseudo-localized baseline map for injection.
 `;
 
 try {
@@ -35,15 +34,9 @@ try {
       throw new Error('Option --warn-expansion must be between 1 and --max-expansion.');
     }
 
-    const files = await listFiles(options.dir, { extensions: ['.json'] });
-    if (files.length === 0) throw new Error(`No locale JSON files found in ${options.dir}.`);
-
-    const locales = {};
-    for (const file of files) {
-      const name = path.basename(file, '.json');
-      const parsed = JSON.parse(await fs.readFile(path.join(options.dir, file), 'utf8'));
-      locales[name] = flattenMessages(parsed);
-    }
+    const { locales, errors } = await loadLocales(options.dir);
+    if (errors.length) throw new Error(errors.join('\n'));
+    if (!Object.keys(locales).length) throw new Error(`No locale JSON files found in ${options.dir}.`);
 
     const result = analyzeLocales(locales, {
       baseline: options.baseline,
@@ -57,7 +50,7 @@ try {
     } else if (options.json) {
       printJson(result);
     } else {
-      process.stdout.write(`Baseline: ${result.baseline} (${result.locales.length} locale file(s))\n`);
+      process.stdout.write(`Baseline: ${result.baseline} (${result.locales.length} locale(s))\n`);
       for (const locale of result.locales) {
         if (locale.isBaseline) {
           process.stdout.write(`  ${locale.name.padEnd(6)} baseline, ${locale.keyCount} keys\n`);

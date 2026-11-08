@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Escalation desk · Relay</title>
+  <link rel="stylesheet" href="dashboard.css">
+  <script defer src="dashboard.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to overview</a>
+  <header class="masthead">
+    <a class="wordmark" href="#main"><span class="brand-mark" aria-hidden="true"></span>Relay</a>
+    <span class="division">Support operations</span>
+    <time datetime="2026-11-08T09:30:00Z">08 Nov 2026 <span>·</span> 09:30 UTC</time>
+  </header>
+  <div class="workspace">
+    <nav class="sidebar" aria-label="Workspace">
+      <a href="#main" aria-label="Overview"><span aria-hidden="true">◧</span><b>Overview</b></a>
+      <a href="#accounts" aria-label="Risk queue"><span aria-hidden="true">≡</span><b>Risk queue</b></a>
+    </nav>
+    <main id="main" tabindex="-1">
+      <details class="mobile-nav">
+        <summary>Workspace menu</summary>
+        <nav aria-label="Workspace"><a href="#main">Overview</a><a href="#accounts">Risk queue</a></nav>
+      </details>
+      <h1>Escalation desk</h1>
+      <div class="analysis">
+        <section class="spotlight" aria-labelledby="priority-heading">
+          <h2 id="priority-heading">First in queue</h2>
+          <p class="account-title" id="priority-name"></p>
+          <p class="reason" id="priority-reason"></p>
+          <button class="primary" id="open-list">Open the at-risk account list <span aria-hidden="true">↓</span></button>
+        </section>
+        <section class="snapshot" data-qa-region="summary" aria-labelledby="snapshot-heading">
+          <h2 id="snapshot-heading">Queue snapshot</h2>
+          <dl>
+            <div><dt>At-risk accounts</dt><dd id="account-count"></dd></div>
+            <div><dt>Open escalations</dt><dd id="escalation-count"></dd></div>
+            <div><dt>Median response</dt><dd id="median-response"></dd></div>
+          </dl>
+          <small>24 hours ending 09:30 UTC</small>
+        </section>
+      </div>
+      <section id="accounts" tabindex="-1" data-qa-region="results" aria-labelledby="queue-heading">
+        <header class="queue-header"><h2 id="queue-heading">Risk queue</h2><span id="sort-summary"></span></header>
+        <div id="recovery" role="alert" hidden>Refresh failed. Showing the last saved queue from 09:30 UTC. <button id="retry">Retry</button></div>
+        <div id="queue-status" role="status"></div>
+        <table aria-labelledby="queue-heading">
+          <thead><tr>
+            <th scope="col" id="account-header"><button data-sort="account">Account <span aria-hidden="true">↕</span></button></th>
+            <th scope="col" id="priority-header"><button data-sort="priority">Priority <span aria-hidden="true">↕</span></button></th>
+            <th scope="col" class="secondary">Owner</th><th scope="col" class="secondary">Last activity</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+  <dialog aria-labelledby="detail-title">
+    <p class="dialog-label">Account detail</p><h2 id="detail-title"></h2>
+    <p id="detail-reason"></p>
+    <dl id="detail-fields"></dl>
+    <form method="dialog"><button class="primary" autofocus>Close account</button></form>
+  </dialog>
+</body>
+</html>

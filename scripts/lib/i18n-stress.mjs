@@ -10,7 +10,10 @@ const ACCENTS = {
 export function flattenMessages(value, prefix = '', output = {}) {
   if (value === null || value === undefined) return output;
   if (typeof value !== 'object') {
-    output[prefix] = String(value);
+    if (Object.hasOwn(output, prefix)) throw new Error(`Duplicate message key "${prefix}".`);
+    Object.defineProperty(output, prefix, {
+      value: String(value), enumerable: true, configurable: true, writable: true,
+    });
     return output;
   }
   if (Array.isArray(value)) {
@@ -59,7 +62,8 @@ export function analyzeLocales(locales, {
   const names = Object.keys(locales ?? {});
   if (names.length === 0) throw new Error('No locale messages were provided.');
 
-  const baselineName = baseline && locales[baseline] ? baseline : (locales.en ? 'en' : names[0]);
+  const defaultBaseline = Object.hasOwn(locales, 'en') ? 'en' : names[0];
+  const baselineName = baseline && Object.hasOwn(locales, baseline) ? baseline : defaultBaseline;
   const baselineMessages = locales[baselineName];
   const baselineKeys = Object.keys(baselineMessages);
   const issues = [];
@@ -68,8 +72,8 @@ export function analyzeLocales(locales, {
   for (const name of names) {
     const messages = locales[name];
     const keys = Object.keys(messages);
-    const missing = baselineKeys.filter((key) => !(key in messages));
-    const extra = keys.filter((key) => !(key in baselineMessages));
+    const missing = baselineKeys.filter((key) => !Object.hasOwn(messages, key));
+    const extra = keys.filter((key) => !Object.hasOwn(baselineMessages, key));
     const expansion = { max: 1, mean: 1, worstKey: null };
     let totalRatio = 0;
     let compared = 0;
@@ -88,7 +92,7 @@ export function analyzeLocales(locales, {
     }
 
     for (const key of baselineKeys) {
-      if (!(key in messages)) continue;
+      if (!Object.hasOwn(messages, key)) continue;
       const value = messages[key];
       const source = baselineMessages[key];
 
@@ -161,7 +165,5 @@ export function analyzeLocales(locales, {
 }
 
 export function pseudoLocale(messages, expansion = 1.35) {
-  const output = {};
-  for (const [key, value] of Object.entries(messages)) output[key] = pseudoLocalize(value, expansion);
-  return output;
+  return Object.fromEntries(Object.entries(messages).map(([key, value]) => [key, pseudoLocalize(value, expansion)]));
 }

@@ -1,0 +1,3 @@
+/generated.spec.mjs
+/qa/*
+!/qa/baseline/

@@ -4,14 +4,18 @@ import { readJsonFile } from './lib/project-inspector.mjs';
 import { verifyProject } from './lib/verify.mjs';
 
 const help = `Usage:
-  verify.mjs --plan <plan.json> [--root .] [--qa qa] [--baseline qa/baseline] [--locales locales] [--skip bundle,i18n] [--json]
+  verify.mjs --plan <plan.json> [--root .] [--qa qa] [--baseline qa/baseline] [--locales locales] [--require regression,bundle] [--skip i18n] [--json]
 
   Runs the close-out checks in one pass: plan validation against the project, then build
   budget, localization pressure, and visual regression. A check whose input is absent is
-  reported as skipped, never as a pass. Exit 1 when any check fails.
+  reported as skipped unless required. --require and --skip accept comma-separated lists
+  and can be repeated. Available checks: plan, bundle, i18n, regression.
+  Exit 0 on success (including warnings), 1 on check failure, 2 on invalid options or input.
 `;
 
-const CHECKS = new Set(['plan', 'bundle', 'i18n', 'regression']);
+function checkNames(values = []) {
+  return values.flatMap(value => value.split(',').map(id => id.trim()));
+}
 
 try {
   const options = parseArgs(process.argv.slice(2), {
@@ -20,7 +24,8 @@ try {
     qa: { type: 'string', default: 'qa' },
     baseline: { type: 'string', default: 'qa/baseline' },
     locales: { type: 'string', default: 'locales' },
-    skip: { type: 'string' },
+    skip: { type: 'string', repeatable: true },
+    require: { type: 'string', repeatable: true },
     json: { type: 'boolean' },
     help: { type: 'boolean' },
   });
@@ -30,18 +35,14 @@ try {
   } else if (!options.plan) {
     throw new Error('Option --plan is required');
   } else {
-    const skip = options.skip ? options.skip.split(',').map((value) => value.trim()).filter(Boolean) : [];
-    for (const id of skip) {
-      if (!CHECKS.has(id)) throw new Error(`Unknown --skip value: ${id}. Use ${[...CHECKS].join(', ')}.`);
-    }
-
     const report = await verifyProject({
       plan: await readJsonFile(options.plan),
       root: options.root,
       qa: options.qa,
       baseline: options.baseline,
       locales: options.locales,
-      skip,
+      skip: checkNames(options.skip),
+      require: checkNames(options.require),
     });
 
     if (options.json) {
@@ -51,8 +52,9 @@ try {
       process.stdout.write(`verify — ${fail} fail, ${warn} warn, ${pass} pass, ${skipped} skipped\n\n`);
 
       for (const check of report.checks) {
-        if (check.status === 'skipped') {
-          process.stdout.write(`skip  ${check.id.padEnd(11)} ${check.reason}\n`);
+        if (check.reason) {
+          const status = check.status === 'skipped' ? 'skip' : check.status;
+          process.stdout.write(`${status.padEnd(5)} ${check.id.padEnd(11)} ${check.reason}\n`);
           continue;
         }
         const label = `${check.status.padEnd(5)} ${check.id.padEnd(11)}`;
@@ -73,10 +75,10 @@ try {
             process.stdout.write(`        ${issue.code} ${issue.locale}.${issue.key}\n`);
           }
           for (const error of check.parseErrors.slice(0, 4)) {
-            process.stdout.write(`        invalid-json ${error}\n`);
+            process.stdout.write(`        locale-input ${error}\n`);
           }
         } else if (check.id === 'regression') {
-          process.stdout.write(`${label} ${check.summary.passed} passed, ${check.summary.failed} failed, ${check.summary.missing} missing\n`);
+          process.stdout.write(`${label} ${check.summary.passed} passed, ${check.summary.failed} failed, ${check.summary.missing} missing, ${check.summary.added} new\n`);
           for (const failure of check.failures.slice(0, 4)) {
             process.stdout.write(`        ${failure.status}: ${failure.file}\n`);
           }

@@ -127,6 +127,7 @@ export async function inspectBundle({ root = '.', budgets = {}, top = 8 } = {}) 
       totals: { js: null, css: null },
       largest: [],
       budgets,
+      missingAssets: [],
       violations: [],
       warnings: ['No production build output found. Run the production build before measuring.'],
     };
@@ -135,6 +136,7 @@ export async function inspectBundle({ root = '.', budgets = {}, top = 8 } = {}) 
   const assets = await measureAssets(detected.source, detected.assetDirectory);
   const allAssets = [...assets.values()];
   const warnings = [];
+  const missingAssets = new Set();
 
   const routes = routeEntries(detected.source, detected.manifest).map((entry) => {
     const resolved = [];
@@ -142,6 +144,7 @@ export async function inspectBundle({ root = '.', budgets = {}, top = 8 } = {}) 
       const key = assetKey(detected.source, file);
       const asset = assets.get(key);
       if (!asset) {
+        missingAssets.add(key);
         warnings.push(`Route ${entry.route} references a missing asset: ${key}`);
         continue;
       }
@@ -212,6 +215,7 @@ export async function inspectBundle({ root = '.', budgets = {}, top = 8 } = {}) 
     totals,
     largest,
     budgets,
+    missingAssets: [...missingAssets].sort(),
     violations,
     warnings,
   };
