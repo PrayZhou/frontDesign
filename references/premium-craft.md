@@ -1,14 +1,13 @@
 # Premium Craft
 
 "Premium" is rarely an effect. It is proportion, restraint, and material accuracy repeated
-consistently. Use these as defaults derived from the project's tokens — never as a preset to
-paste onto every page.
+consistently. Begin with the actual words, pictures and people in the brief. The ranges below are starting points for a working layout. Keep a wider pause, uneven image sequence or softer division when the rendered page shows what it does for the experience.
 
 ## Set the type scale
 
 - Use 3–4 levels per page: `display`, `title`, `body`, `label`. Add `mono` only for code, IDs,
   or dense numeric tables.
-- Pick one ratio and reuse it: **1.2** (dense product), **1.25** (balanced), **1.333** (editorial).
+- Reuse existing type tokens. If the project lacks a scale, try a starting ratio such as **1.2** for a dense product or **1.333** for editorial contrast, then inspect the real title and body together.
 - Starting sizes: display 32–48 product / 48–72 marketing; title 20–24; body 15–17; label 12–13.
 - Line height: display 1.05–1.15; title 1.2–1.3; body 1.5–1.65; label 1.3–1.4.
 - Letter spacing: display −0.02 to −0.01em; body 0 to +0.005em; label +0.01 to +0.04em;
@@ -16,6 +15,12 @@ paste onto every page.
 - Measure: body 45–75ch, display 20–35ch, form fields 30–40ch.
 - Weight budget: two weights plus one for emphasis. Avoid a 300 weight on light surfaces and
   avoid synthesized bold.
+
+### Fit the type to its container
+
+Use relative units for text and respect the browser's base font size. A fluid heading can use `clamp()` with rem bounds and a rem-plus-viewport middle term. Adjust its line breaks against the actual column. In a product workspace, the recommended account can be larger than the page title; a neighboring queue heading should read as a section. For Chinese prose, start around 28–38 full-width characters per line where space permits and check punctuation and mixed Latin names in the rendered font.
+
+Size panels around the content and its padding. Use a maximum measure for explanations, let a dialog grow vertically when a label wraps, and make long dialogs scroll with a reachable close action. On a tablet, three short metrics can share a row under the main story; on a phone, label–value pairs can stack below it. Check the box that receives taps as well as the visible text or icon. Aim for a 44px tap target for frequent touch actions.
 
 Numbers and tables:
 
@@ -64,9 +69,8 @@ Three layers are enough; add `overlay` only for real floating content.
 - In dark mode raise surfaces with lightness, not with pure black canvas plus pure white text.
   Body text on dark sits around `#f4f4f5`, not `#ffffff`.
 - Elevation count ≤3 across the page. If every panel floats, nothing floats.
-- Radius tiers: control 6–8px, panel 10–12px, shell 16–20px. A child surface is never rounder
-  than its parent. Pills are for tags and binary choices, not for buttons.
-- Glass only where content visibly moves behind it, and always with an opaque fallback.
+- Use the project's radius tokens. When choosing new ones, follow the [soft control, panel and dialog scale](visual-language.md#build-shape-rhythm). Reserve circular indicators for controls such as radio buttons.
+- Place frosted glass where the backdrop varies visibly, such as an action strip over a focal gradient. Provide a solid base color for reduced transparency and browsers without blur.
 
 ## Time the micro-interactions
 
@@ -121,7 +125,7 @@ never removes the confirmation itself:
 A motion token no component references is a token you do not need. Prefer the project's
 existing duration variables when they exist; adding a parallel scale is how pages drift.
 
-## Details that read expensive
+## Details to inspect in context
 
 - Optical alignment: icons, quotation marks, and table numbers align to the text they serve.
 - One icon set, one stroke width (1.5–2px), sizes 16/20/24, aligned to cap height.
@@ -158,4 +162,4 @@ existing duration variables when they exist; adding a parallel scale is how page
 7. Would removing all shadows still leave a readable hierarchy?
 8. Does the same rhythm hold at 320px, 200% zoom, and reduced motion?
 9. Could this layout be pasted onto an unrelated product unchanged? If yes, it is still a template.
-10. Does one primary action remain obvious without reading the whole page?
+10. Can a visitor find the central action, subject or argument at the intended point in the reading order?

@@ -5,9 +5,10 @@ import { inspectProject, readJsonFile } from './lib/project-inspector.mjs';
 import { buildQaPlan, renderPlaywrightSpec, renderQaMarkdown } from './lib/qa-plan.mjs';
 
 const help = `Usage:
-  visual-qa-plan.mjs --file <plan.json> [--root <project>] [--route /path] [--out <qa.md>] [--json]
-  visual-qa-plan.mjs --file <plan.json> --root <project> --emit playwright --out <qa.spec.ts> [--route /path]
+  visual-qa-plan.mjs --file <plan-or-brief.json> [--root <project>] [--route /path] [--out <qa.md>] [--json]
+  visual-qa-plan.mjs --file <plan-or-brief.json> --root <project> --emit playwright --out <qa.spec.ts> [--route /path]
 
+  --file <path>       component plan or a framework-independent design brief with designIntent
   --root <project>    add contrast pairs derived from the project's theme tokens
   --route <path>      route to review; repeat for every page in the shell (default: /)
   --emit playwright   emit a Playwright spec skeleton instead of the markdown checklist

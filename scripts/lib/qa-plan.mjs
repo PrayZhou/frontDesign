@@ -1,3 +1,4 @@
+import { isReadingPurpose, visualIntentErrors } from './visual-intent.mjs';
 import { LEVELS, checkContrast, deriveTokenPairs, resolveColorReference } from './contrast.mjs';
 
 const DEFAULT_VIEWPORTS = ['1440x900', '834x1112', '390x844', '320'];
@@ -6,18 +7,24 @@ const DEFAULT_STATES = ['loading', 'empty', 'error', 'success'];
 const GLOBAL_CHECKS = [
   'The first viewport has one obvious focal point; the primary task is identifiable without reading every label.',
   'No page-level horizontal overflow at any target width.',
-  'Hierarchy comes from type size, spacing, and contrast — not from stacked borders, shadows, or pills.',
+  'Try removing a repeated explanation or nested panel. Keep the first task and essential feedback visible at phone width.',
   'Every color, radius, spacing, and type value maps to an existing project token, or the new value is recorded.',
   'The focus ring is visible on both the page canvas and raised surfaces.',
-  'The keyboard path completes the primary task from the start of the document.',
   '200% zoom reflows without clipping, overlapping, or hidden actions.',
+  'Compare title, body and metadata in their actual columns at each width. Enlarge browser text and open a detail view; labels wrap and controls remain reachable.',
   'Reduced motion keeps state, hierarchy, and feedback while removing travel and loops.',
-  'Loading, empty, error, and success states keep the same geometry.',
   'Images have intrinsic dimensions and fonts do not shift layout on load.',
   'Contrast holds in the rendered material: body text >= 4.5:1, large text >= 3:1, control boundaries >= 3:1.',
   'Long and localized labels wrap or truncate intentionally, with the full value still available.',
-  'One primary action per view; secondary actions read as subordinate.',
   'No effect is required to understand the page.',
+];
+
+const BRIEF_CHECKS = [
+  'Compare the first visible subject with the intended first read.',
+  'Trace the reading order across the opening and its next section. Check that the gap separates ideas and the supporting detail stays with its subject.',
+  'Inspect the actual title breaks, image crops and caption grouping at the observed viewport.',
+  'Identify any content or context lost when the layout narrows.',
+  'Read a full paragraph and its caption at the available widths. Check line length, line spacing and the size of the supporting type.',
 ];
 
 const isRecord = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -155,6 +162,11 @@ function parseViewports(values) {
 export function buildQaPlan(plan, { designTokens, routes } = {}) {
   const document = isRecord(plan) ? plan : {};
   const designIntent = isRecord(document.designIntent) ? document.designIntent : {};
+  const errors = visualIntentErrors(designIntent);
+  if (errors.length) throw new Error(errors.map(error => error.path + ': ' + error.message).join('\n'));
+  const emotion = isRecord(designIntent.emotionalIntent) ? designIntent.emotionalIntent : null;
+  const reading = isReadingPurpose(designIntent.purpose);
+  const standalone = Boolean(designIntent.purpose) && document.version === undefined && document.foundation === undefined;
   const targets = isRecord(designIntent.visualQaTargets) ? designIntent.visualQaTargets : {};
 
   const viewports = strings(targets.viewports).length ? strings(targets.viewports) : [...DEFAULT_VIEWPORTS];
@@ -163,15 +175,46 @@ export function buildQaPlan(plan, { designTokens, routes } = {}) {
     .filter(isRecord)
     .map(normalizeRegion);
 
-  const declaredStates = new Set();
+  const declaredStates = new Set(designIntent.purpose ? strings(targets.states).map(state => state.toLowerCase()) : []);
   for (const region of regions) {
     for (const state of region.states) declaredStates.add(state.toLowerCase());
   }
-  const stateCoverage = declaredStates.size ? [...declaredStates] : [...DEFAULT_STATES];
+  const asyncRegion = regions.some(region => region.capabilities.includes('async') || region.capabilities.includes('data'));
+  const fallbackStates = designIntent.purpose && !asyncRegion ? [] : DEFAULT_STATES;
+  const stateCoverage = declaredStates.size ? [...declaredStates] : [...fallbackStates];
+  const globalChecks = standalone ? [...BRIEF_CHECKS] : [...GLOBAL_CHECKS];
+  globalChecks.push('For controls with a mark, inspect icon stroke and alignment, spacing around the label and edge padding at actual size. Try hover, keyboard focus and reduced motion to check how the mark responds.');
+  if (designIntent.purpose === 'act' || text(designIntent.primaryAction) ||
+      regions.some(region => region.capabilities.some(capability => ['forms', 'controls', 'interactive'].includes(capability)))) {
+    globalChecks.push('Review the control family in context. Which product detail shaped its buttons, fields or switches? Try the controls present with a real value and keyboard focus; check that selection remains legible without color.');
+  }
+  if (regions.some(region => region.capabilities.includes('scene3d'))) {
+    globalChecks.push('Inspect the model silhouette at phone and desktop widths. Change the view or selection and identify the product detail it reveals.');
+    globalChecks.push('Exercise keyboard and touch controls, reduced motion, a missing renderer and context loss. Check that the underlying task works with the poster and that hidden scenes stop animating.');
+  }
+  if (reading) globalChecks.push('Check the sequence, captions and reading order at desktop and narrow widths.');
+  if (!reading || text(designIntent.primaryAction)) {
+    globalChecks.push('The keyboard path completes the primary task from the start of the document.');
+    globalChecks.push('One primary action per view; secondary actions read as subordinate.');
+  }
+  if (stateCoverage.some(state => DEFAULT_STATES.includes(state))) {
+    globalChecks.push('Declared asynchronous states keep the reading position stable.');
+  }
   const contrast = buildContrastPairs(designIntent, designTokens);
 
   return {
+    reviewType: standalone ? 'brief' : 'component',
     product: text(designIntent.product),
+    purpose: text(designIntent.purpose),
+    coreTask: text(designIntent.coreTask),
+    composition: designIntent.composition ?? null,
+    sketches: (Array.isArray(designIntent.styleDirections) ? designIntent.styleDirections : [])
+      .filter(direction => text(direction?.sketch))
+      .map(direction => ({
+        name: text(direction.name) || text(direction.id),
+        reference: text(direction.sketch),
+        selected: Boolean(direction.id && direction.id === designIntent.selectedStyleDirection),
+      })),
     primaryAction: text(designIntent.primaryAction),
     foundation: text(document.foundation),
     enhancer: text(document.enhancer) || 'none',
@@ -182,10 +225,11 @@ export function buildQaPlan(plan, { designTokens, routes } = {}) {
     regions,
     contrastLevel: contrast.level,
     contrastPairs: contrast.pairs,
-    globalChecks: [...GLOBAL_CHECKS],
+    globalChecks,
     successCriteria: strings(designIntent.successCriteria),
-    emotionalQuestions: strings(isRecord(designIntent.emotionalIntent) ? designIntent.emotionalIntent.qaQuestions : []),
-    emotionalSource: text(isRecord(designIntent.emotionalIntent) ? designIntent.emotionalIntent.source : ''),
+    emotionalIntent: emotion,
+    emotionalQuestions: strings(emotion?.qaQuestions),
+    emotionalSource: text(emotion?.source),
     report: {
       engineering: '',
       rendered: '',
@@ -203,23 +247,44 @@ export function renderQaMarkdown(qa) {
 
   lines.push(
     qa.product ? `Product: ${qa.product}` : 'Product: (not declared)',
-    qa.primaryAction ? `Primary action: ${qa.primaryAction}` : 'Primary action: (not declared)',
-    `Foundation: ${qa.foundation || '(not declared)'} · Enhancer: ${qa.enhancer}${qa.density ? ` · Density: ${qa.density}` : ''}`,
+    ...(qa.purpose ? [`Purpose: ${qa.purpose}`] : []),
+    ...(qa.coreTask ? [`Intended outcome: ${qa.coreTask}`] : []),
+    ...(qa.primaryAction ? [`Primary action: ${qa.primaryAction}`] : []),
+    ...(qa.foundation ? [`Foundation: ${qa.foundation} · Enhancer: ${qa.enhancer}${qa.density ? ` · Density: ${qa.density}` : ''}`] : []),
     `Success criteria: ${qa.successCriteria.length} · Emotional questions: ${qa.emotionalQuestions.length}`,
     '',
   );
 
+  if (qa.composition) {
+    lines.push('## Composition review', '',
+      checkboxLine('First read — ' + qa.composition.firstRead),
+      checkboxLine('Reading order — ' + qa.composition.readingOrder.join(' → ')),
+      checkboxLine('Recheck the tradeoff — ' + qa.composition.tradeoff), '',
+      'Record the viewport, visible evidence, revision and result of the next capture.', '');
+  }
+
+  if (qa.sketches?.length) {
+    lines.push('## Sketch references', '');
+    for (const sketch of qa.sketches) {
+      lines.push(`- ${sketch.name}${sketch.selected ? ' (selected)' : ''} — ${sketch.reference}`);
+    }
+    lines.push('');
+  }
+
   lines.push('## Review targets', '');
   for (const viewport of qa.viewports) lines.push(checkboxLine(viewport));
-  lines.push(checkboxLine('200% zoom'), checkboxLine('keyboard path'), checkboxLine('reduced motion'));
+  if (qa.reviewType === 'brief') {
+    lines.push('', 'Record which views were available. Proposed checks may be left open.');
+  } else {
+    lines.push(checkboxLine('200% zoom'), checkboxLine('keyboard path'), checkboxLine('reduced motion'));
+  }
   if (qa.emotionalSource === 'user-provided') lines.push(checkboxLine('reduced transparency / opaque fallback'));
   lines.push('');
 
-  lines.push('## States to exercise', '');
-  lines.push(qa.states.join(' · '), '');
+  if (qa.states.length) lines.push('## States to exercise', '', qa.states.join(' · '), '');
 
-  lines.push('## Region checks', '');
-  if (qa.regions.length === 0) {
+  if (qa.regions.length || qa.reviewType !== 'brief') lines.push('## Region checks', '');
+  if (qa.regions.length === 0 && qa.reviewType !== 'brief') {
     lines.push('No regions declared in the plan.', '');
   }
   qa.regions.forEach((region, index) => {
@@ -264,16 +329,33 @@ export function renderQaMarkdown(qa) {
     lines.push('');
   }
 
-  if (qa.emotionalQuestions.length) {
+  const emotion = qa.emotionalIntent;
+  if (emotion || qa.emotionalQuestions.length) {
     lines.push('## Emotional checks (observations, not scores)', '');
+    if (qa.emotionalSource === 'user-provided' && text(emotion?.userPhrase)) {
+      lines.push(`User’s words: ${emotion.userPhrase}`, '');
+    }
+    if (text(emotion?.goal)) {
+      lines.push(`Intended experience (${qa.emotionalSource || 'inferred'}): ${emotion.goal}`, '');
+    }
+    if (text(emotion?.rationale)) lines.push(emotion.rationale, '');
+    if (isRecord(emotion?.carriers)) {
+      for (const [layer, cue] of Object.entries(emotion.carriers)) {
+        if (text(cue)) lines.push(checkboxLine(`${layer} — ${cue}`));
+      }
+      lines.push('');
+    }
+    if (strings(emotion?.avoid).length) lines.push('Avoid: ' + emotion.avoid.join(' · '), '');
     for (const question of qa.emotionalQuestions) lines.push(checkboxLine(question));
-    lines.push('');
+    lines.push('', 'Describe what changed at this moment. Record visitor reactions only when observed.', '');
   }
 
   lines.push('## Report', '', '~~~text');
   lines.push(
-    'Engineering checks: lint / typecheck / build',
-    'Rendered checks: desktop / tablet / mobile / 320px / 200% zoom / keyboard / reduced motion',
+    ...(qa.reviewType === 'brief'
+      ? ['Observed viewport and material:', 'Visible issue and effect:', 'Revision or proposed follow-up:']
+      : ['Engineering checks: lint / typecheck / build',
+        'Rendered checks: desktop / tablet / mobile / 320px / 200% zoom / keyboard / reduced motion']),
     ...(qa.emotionalQuestions.length ? ['Emotional checks: observations per declared question'] : []),
     'Visual QA status: complete | incomplete',
     'Open issues: ',
@@ -335,7 +417,7 @@ export function renderPlaywrightSpec(qa) {
   lines.push("              expect(overflow, 'region must not scroll horizontally').toBeLessThanOrEqual(1);");
   lines.push('            });');
   lines.push('          }');
-  lines.push(`
+  if (qa.primaryAction || !isReadingPurpose(qa.purpose)) lines.push(`
           test('keyboard path reaches the primary action', async ({ page }) => {
             test.skip(!PRIMARY_ACTION, 'Declare designIntent.primaryAction to check keyboard access.');
             await page.goto(route);
@@ -348,8 +430,8 @@ export function renderPlaywrightSpec(qa) {
               return action.evaluate(element => element.matches(':focus'));
             }, { message: 'Tab must reach the named primary action', timeout: 8000, intervals: [10] }).toBe(true);
             await expect(action).toBeFocused();
-          });
-
+          });`);
+  lines.push(`
           test('axe scan', async ({ page }, testInfo) => {
             const projectRequire = createRequire(testInfo.file);
             try {

@@ -1,6 +1,6 @@
 # Visual Language
 
-Turn an approved visual direction into a coherent shape, material, and interaction system. Treat rounded corners, glass, glow, and motion as hierarchy tools—not a style preset.
+Turn an approved visual direction into a coherent shape, material, and interaction system. Use shape, light and motion to establish what the visitor sees first and what responds to input.
 
 ## Resolve the selected direction
 
@@ -16,7 +16,7 @@ Before styling, make these decisions traceable to the Design Intent:
 | Material | Opaque/translucent surfaces, depth count, backdrop, border, shadow, and fallback | Each material marks a real layer or interaction boundary |
 | Interaction | Hover, press, focus, scroll, and state-transition behavior | Motion communicates response, relationship, or continuity |
 
-Do not infer that “premium” means rounded glass. Use the requested treatment when the user, brand, or approved Design Intent calls for it; otherwise select the systems that fit the product.
+For an open brief, establish the focal content and the space around it first. Pick a focal gradient where light helps direct the eye. Glass can wait for an overlay and motion for a change of state. Leave an effect out when the composition already reads clearly. Choose the hues from the material or brand. Position the lightest and darkest stops around the actual text, then check contrast at both extremes. Let an explicit brief, existing brand or accessibility preference determine any adaptation.
 
 ## Carry the emotional goal
 
@@ -35,15 +35,41 @@ At most one region per page should be `focal`; a page of focal regions has no fo
 
 When `emotionalIntent.source` is `user-provided`, the selected direction's `emotionalEffect` must state how its shape, material, and interaction satisfy the user's own words, and every candidate you reject for conflicting with them must carry that reason in its `tradeoffs`. Do not silently drop a conflicting candidate.
 
+## Derive a control family
+
+Look first at the host product’s controls, type, surfaces and focus treatment. For a new direction, choose a cue from the actual material or workflow. Carry that cue through geometry, type, spacing or feedback where it helps someone act. Keep sufficient visual separation between the action, the editable value and the control that changes a setting.
+
+| Role | Design decision | Check with real content |
+| --- | --- | --- |
+| Button or action link | Decide which action deserves a filled surface. Align any mark to its label and let its movement follow the action. | Compare primary and secondary actions together. Try keyboard focus, press and any supported pending or disabled state. |
+| Text or search input | Place a persistent label, choose a boundary that reads as editable and give the value room. Use type appropriate to the material, including tabular digits for instrument logs. | Enter, edit and clear a realistic value. Check empty, focused and filled states. Associate feedback with the field when validation applies. |
+| Setting or choice | Use a switch for an immediate on/off setting, a radio group for exclusive options, or tabs for switching panels. Choose a track, thumb or selection mark that fits the surface. | Expose the selected state through position, shape or text as well as color. Keep the name stable when a switch changes. Test Space on the switch, arrow keys on radios, and a complete state change with reduced motion. |
+
+A ruled search field can suit a reader marking a manuscript. A monospaced field can suit an engineer searching a log. Both need the same keyboard behavior, a visible focus indicator and an unmistakable result when the query matches nothing.
+
+Review the controls together at actual size and at phone width. Briefly remove the accent color: the field should still look editable, the selected position should still read, and the strongest action should still lead. If the controls could be moved unchanged between unrelated products, revisit the component whose proportions or feedback have the weakest connection to its task.
+
 ## Build shape rhythm
 
-Use at most three intentional radius tiers:
+For a product that benefits from softly rounded surfaces and has no established shape tokens, try these proportions. A ruled editorial field or compact instrument latch can derive its edge directly from the material. Check the result on a real control with its label and focus ring visible.
 
-- **Control:** buttons, inputs, badges, and compact interactive items.
-- **Panel:** cards, list rows, menus, and local work areas.
-- **Shell:** hero previews, application frames, and major conversion surfaces.
+| Element | Starting radius | How to use it |
+| --- | --- | --- |
+| Buttons, text fields and menu items | 10–12px | Use the same token for controls of similar height. |
+| Cards, notices and menus | 16–20px | Give a grouped surface a little more curve than its nested controls. |
+| Dialogs and large framed surfaces | 20–24px | Use the larger tier where there is enough padding to follow the curve. |
 
-Scale the tier with size and grouping rather than repeating one radius everywhere. A child surface should usually use a smaller radius than its parent. Pills are reserved for tags, binary choices, compact status, or controls whose geometry benefits from a capsule—not every button.
+**Radio buttons.** Use native single-choice inputs with a shared name and clickable labels. Keep the native circular indicator and use `accent-color` to pick up the brand color. For example:
+
+```html
+<fieldset>
+  <legend>Contact me by</legend>
+  <label><input type="radio" name="contact" value="email" checked> Email</label>
+  <label><input type="radio" name="contact" value="phone"> Phone</label>
+</fieldset>
+```
+
+If the project already supplies a custom radio, keep its accessible input and keyboard behavior. Give both the outer ring and the selected dot equal inline and block dimensions, a 50% radius, and room to keep their shape beside a wrapping label. Verify that clicking the label selects the option, arrow keys move the selection, and keyboard focus is visible.
 
 Avoid boxed-page syndrome:
 

@@ -2,7 +2,9 @@
 
 Visual QA is a rendered review against the approved Design Intent, selected Style Direction, content model, responsive contract, and declared success criteria. A passing build is not visual approval.
 
-Generate the checklist before looking at the page, so the review does not depend on recollection:
+For critique of a supplied screenshot, inspect the available viewport and state. Anchor the recommendation to a visible detail and describe the follow-up check. For a surface you can render, compare the same viewport before and after the revision against the planned first read, sequence and tradeoff. Record the files or views actually inspected.
+
+The checklist accepts a component plan or a standalone JSON visual brief as described in [the skill entry point](../SKILL.md). Generate it before looking at a runnable page:
 
 ```bash
 node .agents/skills/component-driven-frontend/scripts/visual-qa-plan.mjs --file <plan.json> --out qa.md
@@ -16,9 +18,9 @@ The repeatable half of the review can be automated without installing anything:
 node .agents/skills/component-driven-frontend/scripts/visual-qa-plan.mjs --file <plan.json> --root . --emit playwright --out qa.spec.ts
 ```
 
-At each viewport the spec checks document and region overflow, presses Tab until the primary action receives focus, and runs axe when the project has `@axe-core/playwright` installed. Set `designIntent.primaryAction` to the exact accessible name of one visible button or link on the route. An undeclared action and an absent axe package are reported as skipped. An unreachable declared action or an axe violation fails the test. Multiple routes with different actions need route-specific locators in the emitted spec. Region assertions expect `data-qa-region="<id>"` on each wrapper.
+At each viewport the spec checks document and region overflow, presses Tab until the primary action receives focus, and runs axe when the project has `@axe-core/playwright` installed. Set `designIntent.primaryAction` to the exact accessible name of one visible button or link on the route. A reading or exploration brief without a primary control omits the primary-action test. A declared primary action still gets a keyboard test. Older plans without an action and scans without an installed axe package are reported as skipped. An unreachable declared action or an axe violation fails the test. Multiple routes with different actions need route-specific locators in the emitted spec. Region assertions expect `data-qa-region="<id>"` on each wrapper.
 
-The spec also captures reduced motion and leaves async-state geometry tests skipped until the project supplies fixtures. Use the checklist to review visual hierarchy, state feedback, and zoom. The [support dashboard case study](../examples/support-dashboard/README.md) includes runnable browser checks, failure controls, and desktop and 320px captures.
+The spec also captures reduced motion and leaves async-state geometry tests skipped until the project supplies fixtures. Use the checklist to review visual hierarchy, state feedback, and zoom.
 
 ## Contrast from tokens
 
@@ -48,7 +50,7 @@ node .agents/skills/component-driven-frontend/scripts/visual-regression.mjs --ba
 - `missing` means a baseline capture has no current counterpart; `new` means a capture has no baseline. Neither is silently accepted.
 - Run `--update` only after the review is approved. It copies, never deletes, and lists stale baseline files for you to remove deliberately.
 
-## Required review matrix
+## Implementation review matrix
 
 Inspect the rendered page at:
 
@@ -82,7 +84,7 @@ Effects are optional. If glass, blur, shadows, parallax, video, or pointer-drive
 
 ## Emotional review
 
-When the plan declares `emotionalIntent.qaQuestions`, those questions join this rendered review.
+When a brief includes emotional intent, the generated review carries its source, intended experience, rationale, concrete design choices, treatments to avoid and review questions. Revisit the same moment at the same width. Describe the cue you can see or operate, and reserve claims about how people felt for an observed session.
 
 When `emotionalIntent.source` is `user-provided`, those questions are mandatory: answer each against the user's stated feeling rather than a feeling you inferred. A failed answer is still a design finding, not an automatic build failure.
 
@@ -98,9 +100,9 @@ Record what is observed for each one—not a score, and not a claim that the fee
 
 A failed emotional question is a design finding, not an automatic build failure. Report it alongside the viewport and state results rather than in place of them, and leave this section out when the plan declares no emotional intent.
 
-## Reporting
+## Reporting an implementation review
 
-Report engineering verification separately from rendered verification. Include the `Emotional checks` line only when the plan declares emotional intent; omit the line entirely otherwise, matching the emotional review above. Include `Success criteria` whenever the plan declares them, and answer each one:
+For a screenshot critique, finish with the observed issue, proposed revision and follow-up check at the supplied size. For a completed implementation, report engineering verification separately from rendered verification. Include the `Emotional checks` line only when the plan declares emotional intent; omit the line entirely otherwise, matching the emotional review above. Include `Success criteria` whenever the plan declares them, and answer each one:
 
 ```text
 Engineering checks: lint / typecheck / build
@@ -113,7 +115,7 @@ Open issues: ...
 
 An unanswered success criterion makes the review incomplete even when every viewport looks fine.
 
-If desktop and mobile output were not actually inspected, state exactly:
+For a full page implementation whose desktop or mobile render is still uninspected, report:
 
 ```text
 Visual QA incomplete

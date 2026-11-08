@@ -444,3 +444,36 @@ test('an invalid contrast kind is an error', () => {
   assert.equal(result.valid, false);
   assert.ok(result.errors.some((item) => item.code === 'invalid-contrast-kind'));
 });
+
+test('page purpose controls action requirements while legacy plans retain capability checks', () => {
+  const page = basePlan();
+  delete page.designIntent.primaryAction;
+  for (const purpose of ['explore', 'understand']) {
+    page.designIntent.purpose = purpose;
+    assert.deepEqual(validateComponentPlan(page).warnings, []);
+  }
+  page.designIntent.purpose = 'act';
+  page.regions[0].capabilities = ['layout'];
+  assert.ok(validateComponentPlan(page).warnings.some(issue => issue.code === 'primary-action-missing'));
+  delete page.designIntent.purpose;
+  page.regions[0].capabilities = ['marketing'];
+  assert.ok(validateComponentPlan(page).warnings.some(issue => issue.code === 'primary-action-missing'));
+});
+
+test('invalid optional visual intent fields have precise diagnostic paths', () => {
+  const page = basePlan();
+  Object.assign(page.designIntent, { purpose: 'stylish', composition: { firstRead: '', readingOrder: [null] } });
+  const paths = validateComponentPlan(page).errors.map(issue => issue.path);
+  for (const path of ['purpose', 'composition/firstRead', 'composition/readingOrder', 'composition/tradeoff']) {
+    assert.ok(paths.includes('/designIntent/' + path), path);
+  }
+});
+
+test('a spatial scene can declare Three.js as a capability dependency', () => {
+  const plan = basePlan(validEmotion);
+  plan.regions[0].capabilities.push('scene3d');
+  plan.dependencies.push({ name: 'three', reason: 'Render the product model', new: true });
+  const result = validateComponentPlan(plan);
+  assert.deepEqual(result.errors, []);
+  assert.deepEqual(result.warnings, []);
+});

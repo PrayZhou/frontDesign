@@ -1,10 +1,11 @@
+import { isReadingPurpose, visualIntentErrors } from './visual-intent.mjs';
 import { LEVELS, contrastRatio, parseColor, resolveColorReference } from './contrast.mjs';
 
 const requiredDesignIntentFields = ['product', 'audience', 'coreTask', 'visualDirection', 'density'];
 const validDensities = new Set(['compact', 'comfortable', 'spacious']);
 const canonicalCapabilities = new Set([
   'navigation', 'forms', 'controls', 'data', 'table', 'chart', 'metrics',
-  'overlay', 'feedback', 'layout', 'marketing', 'interactive', 'async',
+  'overlay', 'feedback', 'layout', 'marketing', 'interactive', 'async', 'scene3d',
 ]);
 const asyncStates = ['loading', 'empty', 'error', 'success'];
 const interactiveImplyingCapabilities = new Set(['forms', 'controls', 'overlay']);
@@ -12,6 +13,9 @@ const dataImplyingCapabilities = new Set(['table', 'chart', 'metrics']);
 const knownFoundations = new Set(['shadcn', 'heroui', 'mantine', 'mui', 'ant-design', 'chakra-ui']);
 const knownEnhancers = new Set(['magicui', 'aceternity']);
 const capabilityLibraries = new Set([
+  'three',
+  '@react-three/fiber',
+  '@babylonjs/core',
   'recharts',
   'tanstack-table',
   '@tanstack/react-table',
@@ -634,8 +638,10 @@ function validateCraft(document, errors, warnings) {
     errors.push(issue('multiple-focal-regions', '/regions', `Only one region can be emotionalRole "focal"; found ${focalCount}. A page of focal regions has no focus.`));
   }
 
-  if ([...pageCapabilities].some((capability) => pageActionCapabilities.has(capability))
-    && !isNonEmptyString(designIntent.primaryAction)) {
+  const expectsAction = designIntent.purpose === 'act' || (
+    !isReadingPurpose(designIntent.purpose) && [...pageCapabilities].some(capability => pageActionCapabilities.has(capability))
+  );
+  if (expectsAction && !isNonEmptyString(designIntent.primaryAction)) {
     warnings.push(issue('primary-action-missing', '/designIntent/primaryAction', 'An operable or marketing page should name its single primary action.'));
   }
 }
@@ -666,6 +672,7 @@ export function validateComponentPlan(plan, { project } = {}) {
         `designIntent.density must be one of: ${[...validDensities].join(', ')}.`,
       ));
     }
+    errors.push(...visualIntentErrors(document.designIntent));
     validateStyleDirections(document.designIntent, errors, warnings);
     validateQualityMetadata(document.designIntent, errors, warnings);
     validateEmotionalIntent(document.designIntent, errors, warnings);

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { validateComponentPlan } from './plan-validator.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const examplePath = path.join(here, '..', '..', 'examples', 'component-plan.example.json');
+const examplePath = path.join(here, 'fixtures', 'component-plan.json');
 
 // The canonical example is part of the contract: if it stops passing, the docs are lying.
 test('the example plan passes strict validation with no warnings', async () => {

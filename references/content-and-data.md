@@ -8,7 +8,7 @@ Record the user's content units, expected length, priority, and fallback:
 
 - labels and headings: short, long, localized, and wrapped cases;
 - values: realistic ranges, units, dates, numbers, and unavailable values;
-- actions: one primary action plus clearly subordinate alternatives;
+- actions: the decision and its control where the visitor has an action to take;
 - status copy: loading, empty, error, permission, offline, partial, and success;
 - ownership: who edits, confirms, retries, or dismisses the content.
 

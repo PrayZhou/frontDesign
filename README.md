@@ -5,8 +5,7 @@
 ### Turn product intent into verified, expressive interfaces
 
 <p>
-  A design-aware Agent skill for planning and building polished React interfaces
-  with verified components, coherent visual direction, and responsive visual QA.
+  An agent skill for designing, critiquing and building web interfaces, from a reading page to a production React workspace.
 </p>
 
 <p>
@@ -17,91 +16,33 @@
 
 </div>
 
-<p align="center">
-  <img src="assets/warmth.png" alt="Warm, human-centered interface direction" width="31%" />
-  <img src="assets/aiProduct.png" alt="AI product interface direction" width="31%" />
-  <img src="assets/science.png" alt="Scientific and technical interface direction" width="31%" />
-</p>
-
-<p align="center">
-  <em>Three visual directions. One evidence-driven component workflow.</em>
-</p>
-
 ## What this skill does
 
-`component-driven-frontend` helps turn a product brief into a practical component
-plan and a production-ready implementation. It is designed for interfaces where
-component selection, visual language, composition, responsive behavior, and
-accessibility require real judgment.
+Use the same content to explore different compositions, then select the one that serves the visitor’s purpose. A first-screen recommendation can help a support lead act immediately. A contact sheet helps an editor compare pictures. A long read needs enough room for a thought to unfold.
 
-The skill:
+| Starting point | Deliverable |
+| --- | --- |
+| An open design brief | Two comparable first-screen sketches, a selected reading order, a narrow layout and the tradeoff. An approved direction can go straight to refinement. |
+| A screenshot or existing surface | A critique anchored to the visible viewport, a concrete revision and a way to check it. |
+| An implementation request | A working page in the project’s stack with rendered review. React component projects also use source verification, strict component plans and CI checks. |
 
-- inspects the existing project before choosing a foundation or component;
-- turns product intent into an explicit visual direction;
-- searches for inspiration without copying unverifiable references;
-- verifies project components and source APIs before recommending them;
-- limits the implementation to one foundation and at most one visual enhancer;
-- plans multi-page shells from the real route map;
-- produces and validates a machine-readable component plan;
-- carries the plan into implementation and rendered desktop/mobile QA;
-- checks contrast, visual regressions, localization expansion, and build budgets before a
-  page is called done.
+Pure design and feedback work without a repository. A bounded component or token change keeps the existing composition. Use the project’s normal engineering workflow for logic defects and exact-value edits.
 
-## When to use it
+Build the first draft around a particular encounter. A supervisor wants to know who is handling a blocked delivery. A reader may linger after a line of dialogue. Revise the copy, pacing, image or response where that encounter happens, then inspect it at the same viewport. Give the first subject room, align related information and remove repeated explanations. Use a gradient if it helps locate the focal content. Glass and motion can wait until the visitor opens a detail view. Include solid and reduced-motion alternatives. New interfaces start with softly rounded buttons and fields, a larger radius on panels and dialogs, and circular radio indicators. Existing design systems supply their own shape tokens. [Shape and radio examples](references/visual-language.md#build-shape-rhythm)
 
-Use this skill when you are:
+Size type and its container together. The support desk pairs the handover with metrics on desktop, gives the metrics their own row on tablet and offers the metrics in a disclosure on a phone. Check wrapping, tap targets and enlarged browser text with real content. [Type, measure and component sizing](references/premium-craft.md#set-the-type-scale)
 
-- designing or implementing a React page from a product brief;
-- selecting components from an existing design system or registry;
-- defining a visual direction for a new product surface;
-- composing a dashboard, landing page, product shell, or content-heavy interface;
-- improving a UI where responsive, accessibility, and visual-system decisions matter.
+Design the mark and label together. An arrow can carry the product’s visual style when its stroke, spacing and movement suit the action. Give supporting controls a quieter treatment and keep keyboard focus visible. [Choosing action labels and icons](references/iconography-and-imagery.md#choose-the-action-label-first)
 
-Do not use it for reducer bugs, state-transition defects, or an isolated style edit
-whose exact target and value are already known.
+Derive controls, spatial form and motion from the product task. [Control design](references/visual-language.md#derive-a-control-family) · [Spatial design](references/spatial-design.md)
 
 ## Workflow
 
-```text
-Project inspection
-      ↓
-Design intent + visual direction
-      ↓
-Content, responsive, and performance boundaries
-      ↓
-Verified component and source selection
-      ↓
-Validated component plan
-      ↓
-Implementation with existing tokens
-      ↓
-Rendered desktop/mobile visual QA
-```
+Name the visitor’s purpose → edit the material → compare actual first screens when the brief is open → choose the reading order → inspect the result at its rendered size. For component implementations, continue through source verification, plan validation, implementation and CI.
 
 The complete operating instructions are in [`SKILL.md`](SKILL.md). Supporting
 guidance lives in [`references/`](references/), while deterministic helpers and
 validators live in [`scripts/`](scripts/).
-
-## Visual directions
-
-### Warmth
-
-Human-centered interfaces with approachable rhythm, clear emotional intent, and
-content that feels considered rather than mechanically assembled.
-
-### AI product
-
-Focused product surfaces where hierarchy, interaction states, data density, and
-trustworthy system feedback are more important than decoration.
-
-### Science
-
-Technical interfaces that make complex information legible through disciplined
-layout, evidence, progressive disclosure, and strong responsive behavior.
-
-These images are visual references, not component sources. The skill uses them to
-discuss direction and intent; it never treats an inspiration image as proof that
-a component or API exists.
 
 ## Repository layout
 
@@ -110,19 +51,12 @@ a component or API exists.
 ├── README.md                         # English documentation
 ├── README.zh-CN.md                   # Chinese documentation
 ├── SKILL.md                          # Skill workflow and guardrails
-├── assets/                           # Visual references
-│   ├── warmth.png                    # Warmth visual reference
-│   ├── aiProduct.png                 # AI product visual reference
-│   └── science.png                   # Science visual reference
 ├── references/                       # Detailed domain guidance
 ├── schemas/                          # Machine-readable plan contracts
-├── examples/                         # Canonical plan, validated in tests
 └── scripts/                          # Inspection, search, and validation tools
 ```
 
 ## Example prompts
-
-[Runnable support dashboard](examples/support-dashboard/README.md) pairs the component plan with an offline page, desktop and 320px browser captures, and a reproducible reflow regression. Its Playwright suite exercises keyboard access and axe on the rendered page.
 
 ```text
 Build a responsive analytics dashboard for operations teams.
@@ -132,10 +66,9 @@ a validated component plan before implementation.
 ```
 
 ```text
-Create a polished landing page for an AI writing product.
-Use the user's stated feeling "calm and trustworthy", keep the existing
-foundation, and review the rendered desktop and mobile states before
-considering the work complete.
+Review the supplied 320px screenshot of a Chinese essay. Explain which figure
+the caption appears to belong to, what in the spacing suggests that reading,
+and one change I can try. I only need feedback.
 ```
 
 ## Design principles
@@ -155,8 +88,7 @@ considering the work complete.
 node --test
 ```
 
-Runs the planner, validator, CLI, and component-query suites. Every script is plain
-ESM with no dependencies to install. Validating a plan against a project also checks
+Runs the planner, validator, CLI, and component-query suites. The core CLI scripts are plain ESM and have no installation step. Validating a plan against a project also checks
 the declared foundation, enhancer, installed dependencies, and every declared contrast
 pair:
 
@@ -164,7 +96,7 @@ pair:
 node scripts/validate-component-plan.mjs --file plan.json --root . --strict
 ```
 
-Derive the type scale from one ratio so sizes stop being per-component guesses:
+If the project needs a starting type scale, derive one from a single ratio:
 
 ```bash
 node scripts/type-scale.mjs --body 16 --ratio 1.25 --format css

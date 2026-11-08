@@ -17,11 +17,11 @@ When evidence conflicts, stop and name the conflict, affected decision, and smal
 
 ## Explore Style Directions
 
-When the brief does not already provide a visual direction, propose 2–4 genuinely different candidates before implementation. Change at least two meaningful dimensions—shape, material, density, typography, color strategy, or interaction character—not just the palette. Name each direction, explain its evidence, strengths, tradeoffs, and effect boundaries, then select exactly one. Alternatives are exploration metadata, not simultaneous instructions.
+For an open page-level brief, compare two first-viewport sketches using the same real material. Vary the lead content, reading order, scale, crop or relationship between regions. State what each makes easier and what it costs. Select a direction from the brief and preserve a supplied visual direction. See [composition and critique](composition-and-critique.md).
 
-## Write six fields
+## Record intent for a component plan
 
-Produce all six fields in a compact Design Intent:
+The full component plan uses the following fields. A design-only handoff can use the smaller brief in [the skill entry point](../SKILL.md).
 
 | Field | Decide |
 |---|---|
@@ -36,16 +36,9 @@ Examples set boundaries, not templates: “calm operational workspace; dense tab
 
 ## Name the outcome
 
-Two fields make the page answerable to the brief instead of merely describable:
+The optional `purpose` identifies what the visitor comes to do: `act`, `understand`, or `explore`. Use `coreTask` for the actual decision, insight or experience. When an action is central, `primaryAction` names the button or link by its accessible name. A reading or exploration page may have navigation and still have no primary control. Its rendered review checks image sequence, reading order or comprehension against the brief.
 
-| Field | Decide |
-|---|---|
-| `primaryAction` | The single action the page exists to produce. One per view; everything else is secondary. |
-| `successCriteria` | 1–3 observable outcomes a rendered review can answer without a judgment call. |
-
-Write criteria as checks, not aspirations: “the at-risk list is reachable in one scroll at 320px”
-is checkable; “looks professional” is not. The rendered review answers them one at a time, and
-`visual-qa-plan.mjs` turns them into checklist items.
+Use `composition.firstRead` to name the specific focal material, `composition.readingOrder` for the intended sequence, and `composition.tradeoff` for the cost of the choice. Record one to three `successCriteria` that a reviewer can investigate. Distinguish a visible property (“both accounts and their risk reasons are visible at 320px”) from a user outcome that requires observation (“a new supervisor selects the right account in ten seconds”).
 
 Before fixing type, spacing, surface, and motion values, read [premium craft](premium-craft.md)
 for the ranges that make a page read as considered rather than assembled. Those ranges are
@@ -60,7 +53,9 @@ Record where the feeling comes from before deriving it.
 | `user-provided` | The user named the feeling, or picked one of the candidates you offered | Hard — conflicting Style Directions and candidates are rejected with a recorded reason | none |
 | `inferred` (or absent) | You derived it from product, audience, and core task | Soft — it orders and justifies, but does not reject | `Assumption — user may override` |
 
-When the brief names no feeling but the page needs one, offer 2–4 candidate feelings, each with a one-line rationale and the carriers that would express it, then let the user pick one or write their own. Never offer more than four, and never silently replace a user-stated feeling with your own.
+When mood matters and the brief leaves it open, derive a provisional choice from the subject, audience and material. If the sketches lead to meaningfully different experiences and the evidence leaves the choice open, ask the user which serves their audience.
+
+A comment such as “太生硬了，要有些情感” identifies a problem and leaves the particular mood open. Preserve that feedback in the rationale. If the designer chooses reassurance, curiosity or intimacy, mark that choice `inferred`. A precise request such as “我希望出错的人能安心” supplies the feeling directly.
 
 For `user-provided`, copy the user's words verbatim into `userPhrase`; the `goal` still states the experience, not the adjective. `高级` must become an experience such as `confidence that the tool will not waste my time`.
 
@@ -95,7 +90,7 @@ An emotional goal is not a budget for decoration. It adds no foundation and no e
 
 ## Set visual rules
 
-- **Typography:** Keep the existing family unless brand evidence authorizes change. Derive the scale once with `type-scale.mjs --body 16 --ratio 1.25`, then use only those steps: 13/17/21px one-offs are how a page loses rhythm. Define display/body/label roles, readable measures, and a limited weight range; use size and spacing before decorative effects to establish hierarchy.
+- **Typography:** Use the existing family and type scale unless the brief calls for a change. When a project lacks type tokens, `type-scale.mjs --body 16 --ratio 1.25` gives a starting scale to test against the actual content. Define display/body/label roles, readable measures, and a limited weight range; use size and spacing before decorative effects to establish hierarchy.
 - **Color:** Start from existing semantic tokens. Assign colors by purpose—surface, text, border, action, status—and verify contrast with `check-contrast.mjs` rather than by eye. Record the pairs that must pass in `designIntent.contrastPairs` with a `contrastLevel`; the validator blocks a failing pair before implementation. Add a new accent only when it has a defined role.
 - **Spacing, shape, and material:** Use the project's spacing and radius scales. Let content relationships determine gaps. Define surface depth and fallback behavior before using translucency or blur. Do not wrap every region in a large rounded container. Read [visual language](visual-language.md) when shape or material affects the direction.
 - **Interaction and motion:** State purpose, trigger, duration character, and reduced-motion behavior. Prefer state continuity and input feedback. A core product demonstration needs more than a whole-section fade. Read [visual language](visual-language.md) for the interaction inventory.
@@ -112,4 +107,4 @@ Reject or revise the direction when any answer is “yes” without evidence:
 - Could the same visual direction be pasted onto an unrelated SaaS, portfolio, or storefront unchanged?
 - Does decoration reduce contrast, scannability, performance, or reduced-motion support?
 
-Revise toward product-specific hierarchy, content, and interaction. A gradient, glass surface, Bento composition, beam, or animation is acceptable only when a higher-ranked source or an explicit functional rationale supports it.
+Revise toward product-specific hierarchy, content, and interaction. In an open brief, use alignment and deliberate gaps to establish the reading order. Select any gradient, glass or motion according to the content or interaction it serves. Follow explicit brand or brief constraints when they specify a different treatment.

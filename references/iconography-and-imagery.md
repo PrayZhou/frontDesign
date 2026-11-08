@@ -3,6 +3,21 @@
 Icons and images are where a polished layout starts to look assembled. One family, one
 stroke, one crop logic, and deliberate alt text do more than any new illustration.
 
+## Choose the action label first
+
+Start with a specific action label. A directional mark can guide the eye or echo a brand motif. Choose its weight alongside the type, center the visible strokes against the letters, and balance the space between label, mark and outer edge. Make the whole control one keyboard and pointer target.
+
+| Actual behavior | Treatment |
+| --- | --- |
+| Jump to a section on this page | A link labeled “进入演示” can use a short descending path to lead into the section. |
+| Show source material in a dialog | A button labeled “查看原始记录”. Provide dialog semantics and return focus on close. |
+| Change a table's sort order | Show the active direction beside the column name and expose it through `aria-sort`. |
+| Open a new tab when that is significant | Communicate the change in the accessible link text. Follow an established external-link convention when one exists. |
+
+In the signal demo, the main action uses a dot and a bent trace ending in an arrowhead. Its movement follows the path into the evidence section. The source-record action uses a smaller, stationary trace beside its label. These are choices for this product. In another project, start from its icon family and interaction language. Inspect the resting, hover, focus and pressed states at actual size. Reduced motion should preserve the complete silhouette and a visible focus ring.
+
+When a screenshot singles out a small detail, locate its control and activate it. Check the other instances of that behavior, including the same action in a compact header. Carry the preference across those instances and verify an unrelated functional indicator still reads correctly.
+
 ## Keep one icon family
 
 - Pick one family and one stroke weight. Mixing outline and filled icons in the same

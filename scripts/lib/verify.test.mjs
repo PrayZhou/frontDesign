@@ -12,7 +12,7 @@ import { encodePng } from './png-fixture.mjs';
 const run = promisify(execFile);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cli = path.join(here, '..', 'verify.mjs');
-const examplePath = path.join(here, '..', '..', 'examples', 'component-plan.example.json');
+const examplePath = path.join(here, 'fixtures', 'component-plan.json');
 
 const examplePlan = async () => JSON.parse(await fs.readFile(examplePath, 'utf8'));
 

@@ -1,3 +1,10 @@
+# Local design work and preview media
+/examples/
+/assets/
+/demos/
+/screenshots/
+/captures/
+
 # Dependencies and build outputs
 node_modules/
 .next/
@@ -10,8 +17,7 @@ coverage/
 .work-view/
 /qa.md
 /qa.spec.ts
-/qa/*
-!/qa/baseline/
+/qa/
 test-results/
 playwright-report/
 blob-report/

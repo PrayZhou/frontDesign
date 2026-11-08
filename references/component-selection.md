@@ -16,13 +16,14 @@ Assign each region one or more capabilities:
 | Feedback | alert, toast, progress, skeleton, empty/error state |
 | Layout | container, grid, split pane, disclosure, scrolling |
 | Marketing | hero, proof, feature, pricing, CTA |
+| Spatial model | procedural geometry, asset viewer, cutaway, exploded assembly |
 | Interaction | keyboard model, focus, selection, drag, command |
 
 These are human planning categories. In Component Plan JSON, use only these canonical lowercase machine tokens so policy checks run:
 
 ```text
 navigation, forms, controls, data, table, chart, metrics, overlay,
-feedback, layout, marketing, interactive, async
+feedback, layout, marketing, interactive, async, scene3d
 ```
 
 Unknown or duplicate capability tokens are reported as validation warnings; strict validation blocks them. The structure contract is also available as [JSON Schema](../schemas/component-plan.schema.json). The schema covers shape and enums, while the runtime validator covers cross-field policy and project-context checks.
@@ -37,6 +38,7 @@ Unknown or duplicate capability tokens are reported as validation warnings; stri
 | Feedback | `feedback`; add `async` for asynchronous feedback |
 | Layout | `layout` |
 | Marketing | `marketing`; add `interactive` for operable controls |
+| Spatial model | `scene3d`. Add `interactive` for camera or selection controls. |
 | Interaction | `interactive` |
 
 `forms`, `controls`, and `overlay` require `interactive`. `table`, `chart`, and `metrics` require `data`. `interactive` triggers keyboard, focus, and semantics validation; either `data` or `async` triggers loading, empty, error, and success state coverage. Do not put human labels such as `Interaction` or `Data display` in `capabilities`; add every applicable machine token. Record responsive/accessibility behavior with the capability. Query independently when a region has unrelated needs.
@@ -49,7 +51,11 @@ Unknown or duplicate capability tokens are reported as validation warnings; stri
 4. Compose verified primitives already selected.
 5. Build custom only after documenting why verified candidates fail.
 
-Keep one foundation and at most one enhancer. Prefer the existing foundation for forms, overlays, navigation, and other behavioral primitives. Recharts, TanStack Table, Lucide, Motion, and Sonner are capability libraries: track them in `dependencies`, never in `enhancer`.
+Keep one foundation and at most one enhancer. Prefer the existing foundation for forms, overlays, navigation, and other behavioral primitives. Three.js, Recharts, TanStack Table, Lucide, Motion, and Sonner are capability libraries: track them in `dependencies`, never in `enhancer`.
+
+For a labeled control, choose the plain or illustrated variant that fits its role. Inspect the actual label alongside its mark at desktop and phone sizes. Adapt library defaults where the stroke, spacing or movement feels detached from the surrounding controls. See [action label and icon guidance](iconography-and-imagery.md#choose-the-action-label-first).
+
+Review a candidate beside the field and choice control that share its workflow. Keep its existing input semantics and state behavior while fitting its appearance to the selected direction. See [control family examples](visual-language.md#derive-a-control-family).
 
 ## Keep discovery relevance separate from final fit
 
@@ -97,7 +103,8 @@ Use this exact top-level shape:
     "visualDirection": "...",
     "density": "compact|comfortable|spacious",
     "principles": ["..."],
-    "primaryAction": "the single action this page produces",
+    "purpose": "act",
+    "primaryAction": "accessible name of the main control",
     "successCriteria": ["observable outcome a rendered review can answer"],
     "tokens": {
       "spacingRhythm": "8px base with 1.5 steps",
@@ -138,7 +145,7 @@ Use this exact top-level shape:
 
 All six Design Intent fields are required, including non-empty `coreTask`. Use a string for `foundation`; use a string or `null` for `enhancer`. Every dependency object requires `name`, `reason`, and boolean `new`. Every region requires `id`, `need`, non-empty `capabilities`, non-empty `selection.source`, non-empty `selection.component`, `reason`, non-empty `states`, `responsive`, and `accessibility`. Selection sources may be `project`, `foundation`, `custom`, the declared foundation, or the declared enhancer; the `enhancer` alias is valid only when an enhancer is declared. A known foundation source that differs from `foundation`, or a known visual-enhancer source that differs from `enhancer`, is an error. Regions carrying `interactive` require non-empty `keyboard`, `focus`, and `semantics`. Regions carrying `data` or `async` must include all applicable `loading`, `empty`, `error`, and `success` states; strict validation treats omissions as blocking warnings.
 
-`primaryAction`, `successCriteria`, `tokens`, and `contrastPairs` are optional to the schema but warned when missing, so `--strict` blocks their absence. `contrastPairs` entries accept literal colors, `var(--token)`, or bare token names; the validator resolves names against the project's `designTokens` when `--root` is given and blocks any pair below the `contrastLevel` target. Discovery also reports craft warnings that `--strict` blocks: a generic-only `visualDirection`, more than one `emotionalRole: "focal"` region (an error), a `responsive` note that names no transformation, a stateful region with only `default`, an interactive region without hover/focus/pressed/disabled states, a data-backed region without `contentModel`, and a selected direction without `effectBoundaries`.
+`purpose` and `composition` are optional in v1. Action-led pages should supply `primaryAction`; legacy plans use their capabilities to infer the requirement. Plans marked `understand` or `explore` may omit it. Strict checks continue to cover `successCriteria`, `tokens`, and `contrastPairs`. `contrastPairs` entries accept literal colors, `var(--token)`, or bare token names; the validator resolves names against the project's `designTokens` when `--root` is given and blocks any pair below the `contrastLevel` target. Discovery also reports craft warnings that `--strict` blocks: a generic-only `visualDirection`, more than one `emotionalRole: "focal"` region (an error), a `responsive` note that names no transformation, a stateful region with only `default`, an interactive region without hover/focus/pressed/disabled states, a data-backed region without `contentModel`, and a selected direction without `effectBoundaries`.
 
 For `selection.source: "custom"`, also add:
 

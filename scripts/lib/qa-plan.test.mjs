@@ -212,3 +212,117 @@ test('--emit playwright writes a spec and rejects an unknown emitter', async () 
     await fs.rm(out, { force: true });
   }
 });
+
+const gallery = {
+  designIntent: {
+    product: '三张照片',
+    purpose: 'explore',
+    coreTask: 'Follow the change in distance across the sequence',
+    composition: {
+      firstRead: 'The horizon in the opening photograph',
+      readingOrder: ['Photograph', 'Place and date', 'Next viewpoint'],
+      tradeoff: 'A single opening image defers comparison',
+    },
+  },
+};
+
+test('both review routes check how action icons fit their controls', () => {
+  for (const input of [plan, gallery]) {
+    const checklist = renderQaMarkdown(buildQaPlan(input));
+    assert.match(checklist, /icon stroke and alignment/i);
+    assert.match(checklist, /spacing around the label/i);
+  }
+});
+
+test('control family review follows action briefs and declared controls', () => {
+  const hasReview = input => buildQaPlan(input).globalChecks.some(check => check.includes('control family'));
+  assert.ok(hasReview(plan));
+  assert.ok(hasReview({ designIntent: { purpose: 'act' } }));
+  assert.ok(hasReview({ ...gallery, regions: [{ capabilities: ['forms'] }] }));
+  assert.equal(hasReview(gallery), false);
+});
+
+test('a standalone visual brief generates composition review without a CTA or invented states', () => {
+  const qa = buildQaPlan(gallery);
+  const markdown = renderQaMarkdown(qa);
+  for (const observation of ['The horizon', 'Photograph → Place and date → Next viewpoint', 'defers comparison', 'change in distance']) {
+    assert.ok(markdown.includes(observation), observation);
+  }
+  assert.doesNotMatch(markdown, /primary action|loading, empty|Foundation: \(not declared\)/i);
+  assert.deepEqual(qa.states, []);
+  const spec = renderPlaywrightSpec(qa);
+  assert.doesNotMatch(spec, /keyboard path reaches the primary action|provide a fixture/);
+  assert.match(spec, /axe scan/);
+});
+
+test('a content-led page keeps its actual interactive and async checks', () => {
+  const qa = buildQaPlan({ ...plan, designIntent: { ...plan.designIntent, purpose: 'understand' } });
+  const spec = renderPlaywrightSpec(qa);
+  assert.match(spec, /keyboard path reaches the primary action/);
+  assert.match(spec, /provide a fixture/);
+});
+
+test('malformed composition is diagnosed by the QA entry point', () => {
+  assert.throws(() => buildQaPlan({ designIntent: { composition: { readingOrder: 'first' } } }), /readingOrder/);
+});
+
+test('sketch links stay with their actual candidates and selected direction in the review', () => {
+  const qa = buildQaPlan({ designIntent: { ...gallery.designIntent, selectedStyleDirection: 'sheet',
+    styleDirections: [
+      { id: 'single', name: 'Single frame', sketch: 'first.html#frame' },
+      { id: 'sheet', name: 'Contact sheet', sketch: 'second.html#grid' },
+    ],
+  } });
+  const markdown = renderQaMarkdown(qa);
+  assert.match(markdown, /Single frame[^\n]*first\.html#frame/);
+  assert.match(markdown, /Contact sheet[^\n]*selected[^\n]*second\.html#grid/);
+});
+
+test('a static action brief keeps its keyboard check without inventing loading states', () => {
+  const qa = buildQaPlan({ designIntent: { purpose: 'act', primaryAction: 'Call the desk' } });
+  assert.deepEqual(qa.states, []);
+  assert.match(renderPlaywrightSpec(qa), /keyboard path reaches the primary action/);
+});
+
+test('feedback on a standalone brief can finish without engineering or component evidence', () => {
+  const markdown = renderQaMarkdown(buildQaPlan(gallery));
+  assert.doesNotMatch(markdown, /No regions declared|existing project token|lint \/ typecheck \/ build|primary action/i);
+  assert.match(markdown, /observed viewport/i);
+  const implementation = renderQaMarkdown(buildQaPlan(plan));
+  assert.match(implementation, /lint \/ typecheck \/ build/);
+});
+
+test('a tone revision carries its intended feeling and observable design choices into review', () => {
+  const emotionalIntent = {
+    source: 'inferred',
+    goal: 'Know what can be recovered after the link expires',
+    rationale: 'The user asked for a less mechanical error message.',
+    carriers: { content: 'State that the current link expired.', interaction: 'Keep the resend action beside the message.' },
+    avoid: ['Blaming the recipient'],
+    qaQuestions: ['Is the next step visible beside the reason?'],
+  };
+  const qa = buildQaPlan({ designIntent: { purpose: 'act', primaryAction: 'Send a new link', emotionalIntent } });
+  assert.deepEqual(qa.emotionalIntent, emotionalIntent);
+  const report = renderQaMarkdown(qa);
+  for (const phrase of [emotionalIntent.goal, emotionalIntent.rationale, 'inferred', ...Object.values(emotionalIntent.carriers),
+    ...emotionalIntent.avoid, ...emotionalIntent.qaQuestions]) {
+    assert.ok(report.includes(phrase), phrase);
+  }
+  assert.doesNotMatch(renderQaMarkdown(buildQaPlan({})), /## Emotional checks/);
+});
+
+test('the reviewer can distinguish the user’s requested feeling from its design interpretation', () => {
+  const report = renderQaMarkdown(buildQaPlan({ designIntent: { emotionalIntent: {
+    source: 'user-provided', userPhrase: '像有人接手了', goal: 'Recognize the person following up',
+    carriers: { content: 'Place the owner next to the blocked shipment.' },
+    qaQuestions: ['Can I find the owner?'],
+  } } }));
+  assert.ok(report.includes('像有人接手了'));
+  assert.ok(report.includes('Recognize the person following up'));
+});
+
+test('a spatial region adds model review only to the relevant plans', () => {
+  const spatial = { ...plan, regions: [{ ...plan.regions[0], capabilities: ['scene3d'] }] };
+  assert.match(renderQaMarkdown(buildQaPlan(spatial)), /model silhouette/i);
+  assert.doesNotMatch(renderQaMarkdown(buildQaPlan(gallery)), /model silhouette/i);
+});

@@ -14,6 +14,7 @@ const CAPABILITY_KEYWORDS = {
   layout: ['layout', 'container', 'grid', 'separator', 'resizable', 'scroll', 'accordion'],
   marketing: ['hero', 'landing', 'pricing', 'testimonial', 'feature', 'cta', 'logo'],
   table: ['table', 'datatable', 'tabular'],
+  scene3d: ['scene3d', '3d', 'webgl', 'gltf', 'glb', 'threejs'],
   chart: ['chart', 'graph', 'rechart', 'plot', 'analytics'],
   metrics: ['metric', 'kpi', 'stat', 'scorecard'],
   interactive: ['interactive', 'animation', 'animated', 'motion', 'transition', 'marquee', 'beam', 'sparkle', 'command', 'drag', 'sort', 'filter'],
