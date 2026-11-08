@@ -16,6 +16,12 @@
 
 </div>
 
+<p align="center">
+  <img src="assets/warmth.png" alt="温暖、人性化的界面方向" width="31%" />
+  <img src="assets/aiProduct.png" alt="AI 产品界面方向" width="31%" />
+  <img src="assets/science.png" alt="科学与技术界面方向" width="31%" />
+</p>
+
 ## 这个 skill 解决什么问题
 
 先确定访客要完成的事，再用同一份真实内容比较构图。主管要处理风险账户，账户名、阻塞原因和操作适合放在一起。编辑要比较照片，接触印样能让差异一眼可见。读者要理解一篇文章，标题断行、正文行长和图注位置都影响阅读顺序。
@@ -35,6 +41,12 @@
 把按钮的文字、图形和点击区域一起设计。箭头可以引导视线，也可以呼应产品的视觉语言。先看笔画与字重是否协调，再调图文间距、边缘留白和动效方向。主操作可以更有表现力，次要操作可以更安静。[按钮文字与图标取舍](references/iconography-and-imagery.md#choose-the-action-label-first)
 
 根据产品任务选择控件、空间造型与动效。[组件设计](references/visual-language.md#derive-a-control-family) · [空间设计指南](references/spatial-design.md)
+
+## 产品设计预览
+
+| 旁注 · AI 研究助手 | 返听 · AI 音频修复 |
+| --- | --- |
+| [![旁注 AI 研究助手，青紫色信号网呈现证据轨迹](assets/marginal.webp)](assets/marginal.webp) | [![返听 AI 音频修复，琥珀色磁带配合原声与修复后试听](assets/retone.webp)](assets/retone.webp) |
 
 ## 工作流
 

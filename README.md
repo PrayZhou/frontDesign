@@ -16,6 +16,12 @@
 
 </div>
 
+<p align="center">
+  <img src="assets/warmth.png" alt="Warm, human-centered interface direction" width="31%" />
+  <img src="assets/aiProduct.png" alt="AI product interface direction" width="31%" />
+  <img src="assets/science.png" alt="Scientific interface direction" width="31%" />
+</p>
+
 ## What this skill does
 
 Use the same content to explore different compositions, then select the one that serves the visitor’s purpose. A first-screen recommendation can help a support lead act immediately. A contact sheet helps an editor compare pictures. A long read needs enough room for a thought to unfold.
@@ -35,6 +41,12 @@ Size type and its container together. The support desk pairs the handover with m
 Design the mark and label together. An arrow can carry the product’s visual style when its stroke, spacing and movement suit the action. Give supporting controls a quieter treatment and keep keyboard focus visible. [Choosing action labels and icons](references/iconography-and-imagery.md#choose-the-action-label-first)
 
 Derive controls, spatial form and motion from the product task. [Control design](references/visual-language.md#derive-a-control-family) · [Spatial design](references/spatial-design.md)
+
+## Product previews
+
+| Marginal · AI research | Retone · AI audio restoration |
+| --- | --- |
+| [![Marginal research assistant with a cyan and violet signal mesh](assets/marginal.webp)](assets/marginal.webp) | [![Retone audio restoration interface with an amber cassette](assets/retone.webp)](assets/retone.webp) |
 
 ## Workflow
 

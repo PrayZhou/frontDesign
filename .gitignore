@@ -1,6 +1,12 @@
 # Local design work and preview media
 /examples/
-/assets/
+/assets/*
+# Images included in the English and Chinese READMEs
+!/assets/warmth.png
+!/assets/aiProduct.png
+!/assets/science.png
+!/assets/marginal.webp
+!/assets/retone.webp
 /demos/
 /screenshots/
 /captures/
